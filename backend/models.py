@@ -85,6 +85,8 @@ class ServiceOrder(Base):
     orcamento_status = Column(String, default=OrcamentoStatus.PENDENTE.value)
     orcamento_token = Column(String, nullable=True, unique=True)
     observacoes = Column(String, nullable=True)
+    prioridade = Column(Integer, default=0)
+    aguardando_peca = Column(Integer, default=0)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     valor_total = Column(Float, default=0.0)

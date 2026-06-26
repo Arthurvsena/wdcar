@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
-import { Plus, FileText, Search, ChevronRight, Filter } from 'lucide-react';
+import { Plus, FileText, Search, ChevronRight, Clock, AlertTriangle, Package } from 'lucide-react';
+
+const TABS = [
+  { key: 'abertas', label: 'Abertas', statuses: ['aberta', 'em_andamento'] },
+  { key: 'finalizadas', label: 'Finalizadas', statuses: ['finalizada'] },
+  { key: 'canceladas', label: 'Canceladas', statuses: ['cancelada'] },
+];
 
 export default function ServiceOrders() {
   const [orders, setOrders] = useState([]);
@@ -10,19 +16,17 @@ export default function ServiceOrders() {
   const [clients, setClients] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('todas');
+  const [activeTab, setActiveTab] = useState('abertas');
   const [form, setForm] = useState({ cliente_id: '', vehicle_id: '', observacoes: '' });
 
   useEffect(() => { load(); }, []);
 
   useEffect(() => {
-    let result = orders;
-    if (filterStatus !== 'todas') {
-      result = result.filter(o => o.status === filterStatus);
-    }
+    const tab = TABS.find((t) => t.key === activeTab);
+    let result = tab ? orders.filter((o) => tab.statuses.includes(o.status)) : orders;
     if (search) {
       const q = search.toLowerCase();
-      result = result.filter(o =>
+      result = result.filter((o) =>
         o.cliente?.nome?.toLowerCase().includes(q) ||
         o.vehicle?.modelo?.toLowerCase().includes(q) ||
         o.vehicle?.placa?.toLowerCase().includes(q) ||
@@ -30,12 +34,11 @@ export default function ServiceOrders() {
       );
     }
     setFiltered(result);
-  }, [search, filterStatus, orders]);
+  }, [search, activeTab, orders]);
 
   const load = async () => {
     const { data } = await api.get('/orders');
     setOrders(data);
-    setFiltered(data);
     const { data: cli } = await api.get('/clients');
     setClients(cli);
   };
@@ -54,6 +57,16 @@ export default function ServiceOrders() {
     load();
   };
 
+  const countByStatus = (statuses) => orders.filter((o) => statuses.includes(o.status)).length;
+
+  const getPriorityBadge = (o) => {
+    if (o.status === 'finalizada' || o.status === 'cancelada') return null;
+    if (o.aguardando_peca) return { bg: 'bg-gray-500/10', dot: 'bg-gray-400', text: 'Aguadando peça', icon: Package };
+    if (o.prioridade >= 100) return { bg: 'bg-red-500/10', dot: 'bg-red-400', text: 'Urgente', icon: AlertTriangle };
+    if (o.prioridade >= 50) return { bg: 'bg-orange-500/10', dot: 'bg-orange-400', text: 'Prioridade', icon: Clock };
+    return { bg: 'bg-blue-500/10', dot: 'bg-blue-400', text: 'Normal', icon: null };
+  };
+
   const statusStyles = {
     aberta: { bg: 'bg-yellow-500/10', dot: 'bg-yellow-400', label: 'Aberta' },
     em_andamento: { bg: 'bg-blue-500/10', dot: 'bg-blue-400', label: 'Em andamento' },
@@ -68,7 +81,7 @@ export default function ServiceOrders() {
           <h1 className="text-xl md:text-2xl font-bold text-white">Ordens de Serviço</h1>
           <p className="text-gray-400 text-xs md:text-sm">Gerencie as OS e orçamentos</p>
         </div>
-        <button onClick={() => { setShowForm(true); setFilterStatus('todas'); }} className="flex items-center gap-2 bg-laranja-600 hover:bg-laranja-700 text-white px-4 py-2.5 md:py-2 rounded-xl md:rounded-lg text-sm font-medium active:scale-95 transition-all shadow-lg shadow-laranja-600/20">
+        <button onClick={() => { setShowForm(true); }} className="flex items-center gap-2 bg-laranja-600 hover:bg-laranja-700 text-white px-4 py-2.5 md:py-2 rounded-xl md:rounded-lg text-sm font-medium active:scale-95 transition-all shadow-lg shadow-laranja-600/20">
           <Plus size={18} /> <span className="hidden md:inline">Nova OS</span>
         </button>
       </div>
@@ -78,13 +91,26 @@ export default function ServiceOrders() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
           <input placeholder="Buscar por cliente, placa..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-grafite-900 border border-grafite-800 rounded-xl pl-9 pr-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" />
         </div>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="bg-grafite-900 border border-grafite-800 rounded-xl px-3 py-3 text-white text-sm focus:outline-none focus:border-laranja-500 appearance-none">
-          <option value="todas">Todas</option>
-          <option value="aberta">Abertas</option>
-          <option value="em_andamento">Em andamento</option>
-          <option value="finalizada">Finalizadas</option>
-          <option value="cancelada">Canceladas</option>
-        </select>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-grafite-900 rounded-xl p-1 border border-grafite-800 overflow-x-auto">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+              activeTab === tab.key ? 'bg-laranja-600 text-white shadow-lg shadow-laranja-600/20' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            {tab.label}
+            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+              activeTab === tab.key ? 'bg-white/20' : 'bg-grafite-800'
+            }`}>
+              {countByStatus(tab.statuses)}
+            </span>
+          </button>
+        ))}
       </div>
 
       {showForm && (
@@ -110,11 +136,12 @@ export default function ServiceOrders() {
       <div className="space-y-2">
         {filtered.length === 0 && (
           <div className="bg-grafite-900 border border-grafite-800 rounded-xl p-8 text-center text-gray-500 text-sm">
-            {search || filterStatus !== 'todas' ? 'Nenhuma OS encontrada' : 'Nenhuma OS cadastrada'}
+            {search ? 'Nenhuma OS encontrada' : 'Nenhuma OS nesta categoria'}
           </div>
         )}
         {filtered.map((o) => {
           const st = statusStyles[o.status] || statusStyles.aberta;
+          const prio = getPriorityBadge(o);
           return (
             <Link
               key={o.id}
@@ -122,16 +149,22 @@ export default function ServiceOrders() {
               className="block bg-grafite-900 border border-grafite-800 rounded-xl p-4 active:bg-grafite-800/50 active:scale-[0.99] transition-all"
             >
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-laranja-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <FileText size={18} className="text-laranja-400" />
+                <div className={`w-10 h-10 ${prio?.bg || 'bg-laranja-500/10'} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                  {prio?.icon ? <prio.icon size={18} className={`${prio.dot.replace('bg-', 'text-')}`} /> : <FileText size={18} className="text-laranja-400" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-mono text-gray-500">#{o.id}</span>
                     <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] ${st.bg}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
                       {st.label}
                     </span>
+                    {prio && (
+                      <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] ${prio.bg}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${prio.dot}`} />
+                        {prio.text}
+                      </span>
+                    )}
                     {o.orcamento_status !== 'pendente' && (
                       <span className={`text-[10px] px-2 py-0.5 rounded-full ${o.orcamento_status === 'aprovado' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
                         {o.orcamento_status === 'aprovado' ? 'Aprovado' : 'Reprovado'}

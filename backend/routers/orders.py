@@ -1,4 +1,5 @@
 import secrets
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
@@ -8,7 +9,7 @@ from models import (
     OSStatus, OrcamentoStatus,
 )
 from schemas import (
-    ServiceOrderCreate, ServiceOrderOut,
+    ServiceOrderCreate, ServiceOrderUpdate, ServiceOrderOut,
     OrderPartCreate, OrderServiceCreate,
 )
 from auth import get_current_user
@@ -17,13 +18,23 @@ router = APIRouter(prefix="/orders", tags=["orders"])
 
 
 def _recalc_total(order: ServiceOrder, db: Session):
-    total = 0.0
-    for op in order.parts_used:
-        total += op.quantidade * op.preco_unitario
-    for osv in order.services_used:
-        total += osv.valor_cobrado
+    db.flush()
+    total = sum(op.quantidade * op.preco_unitario for op in order.parts_used)
+    total += sum(osv.valor_cobrado for osv in order.services_used)
     order.valor_total = total
     db.commit()
+
+
+def _calc_prioridade(o: ServiceOrder) -> int:
+    if o.status in (OSStatus.FINALIZADA.value, OSStatus.CANCELADA.value):
+        return 0
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    created = o.created_at.replace(tzinfo=None) if o.created_at else now
+    days_waiting = max(0, (now - created).days)
+    base = days_waiting * 10
+    if o.aguardando_peca:
+        return base - 30
+    return base + 50
 
 
 @router.get("", response_model=list[ServiceOrderOut])
@@ -31,13 +42,13 @@ def list_orders(user: User = Depends(get_current_user), db: Session = Depends(ge
     orders = (
         db.query(ServiceOrder)
         .filter(ServiceOrder.oficina_id == user.oficina_id)
-        .order_by(ServiceOrder.created_at.desc())
         .all()
     )
     result = []
     for o in orders:
-        d = _order_to_dict(o)
-        result.append(d)
+        o.prioridade = _calc_prioridade(o)
+        result.append(_order_to_dict(o))
+    result.sort(key=lambda x: x["prioridade"], reverse=True)
     return result
 
 
@@ -51,6 +62,8 @@ def _order_to_dict(o: ServiceOrder) -> dict:
         "orcamento_status": o.orcamento_status,
         "orcamento_token": o.orcamento_token,
         "observacoes": o.observacoes,
+        "prioridade": o.prioridade,
+        "aguardando_peca": bool(o.aguardando_peca),
         "created_at": o.created_at.isoformat() if o.created_at else None,
         "updated_at": o.updated_at.isoformat() if o.updated_at else None,
         "valor_total": o.valor_total,
@@ -124,6 +137,7 @@ def get_order(order_id: int, user: User = Depends(get_current_user), db: Session
     order = db.query(ServiceOrder).filter(ServiceOrder.id == order_id, ServiceOrder.oficina_id == user.oficina_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
+    order.prioridade = _calc_prioridade(order)
     return _order_to_dict(order)
 
 
@@ -196,6 +210,21 @@ def remove_service_from_order(order_id: int, order_service_id: int, user: User =
     order = db.query(ServiceOrder).filter(ServiceOrder.id == order_id).first()
     if order:
         _recalc_total(order, db)
+    db.commit()
+    return {"ok": True}
+
+
+@router.patch("/{order_id}", response_model=dict)
+def update_order(order_id: int, payload: ServiceOrderUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    order = db.query(ServiceOrder).filter(ServiceOrder.id == order_id, ServiceOrder.oficina_id == user.oficina_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if payload.aguardando_peca is not None:
+        order.aguardando_peca = 1 if payload.aguardando_peca else 0
+    if payload.status:
+        if payload.status not in [e.value for e in OSStatus]:
+            raise HTTPException(status_code=400, detail=f"Invalid status. Use: {[e.value for e in OSStatus]}")
+        order.status = payload.status
     db.commit()
     return {"ok": True}
 

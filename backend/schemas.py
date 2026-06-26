@@ -118,6 +118,11 @@ class ServiceOrderCreate(BaseModel):
     observacoes: Optional[str] = None
 
 
+class ServiceOrderUpdate(BaseModel):
+    status: Optional[str] = None
+    aguardando_peca: Optional[bool] = None
+
+
 class ServiceOrderOut(BaseModel):
     id: int
     oficina_id: int
@@ -127,6 +132,8 @@ class ServiceOrderOut(BaseModel):
     orcamento_status: str
     orcamento_token: Optional[str] = None
     observacoes: Optional[str] = None
+    prioridade: int = 0
+    aguardando_peca: bool = False
     created_at: datetime
     updated_at: datetime
     valor_total: float
