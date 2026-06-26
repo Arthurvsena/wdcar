@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
-import { ArrowLeft, Copy, CheckCircle, XCircle, Plus, Trash2, Share2, Wrench, Package2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Copy, CheckCircle, XCircle, Plus, Trash2, Share2, Wrench, Package2, AlertTriangle, Clock, Package } from 'lucide-react';
 
 export default function ServiceOrderDetail() {
   const { id } = useParams();
@@ -73,6 +73,12 @@ export default function ServiceOrderDetail() {
     load();
   };
 
+  const toggleAguardandoPeca = async () => {
+    await api.patch(`/orders/${id}`, { aguardando_peca: !order.aguardando_peca });
+    load();
+    showMsg(order.aguardando_peca ? 'Peça disponível - prioridade restaurada' : 'Aguardando peça - prioridade reduzida', 'info');
+  };
+
   const copyOrcLink = () => {
     if (!order?.orcamento_token) return;
     const link = `${window.location.origin}/orcamento/${order.orcamento_token}`;
@@ -91,6 +97,16 @@ export default function ServiceOrderDetail() {
     cancelada: 'bg-red-500/20 text-red-400 border-red-500/30',
   };
 
+  const getPriorityInfo = () => {
+    if (order.status === 'finalizada' || order.status === 'cancelada') return null;
+    if (order.aguardando_peca) return { bg: 'bg-gray-500/10', text: 'text-gray-400', icon: Package, label: 'Aguardando Peça' };
+    if (order.prioridade >= 100) return { bg: 'bg-red-500/10', text: 'text-red-400', icon: AlertTriangle, label: 'Urgente' };
+    if (order.prioridade >= 50) return { bg: 'bg-orange-500/10', text: 'text-orange-400', icon: Clock, label: 'Prioridade' };
+    return { bg: 'bg-blue-500/10', text: 'text-blue-400', icon: null, label: 'Normal' };
+  };
+
+  const prio = getPriorityInfo();
+
   return (
     <div className="space-y-4 pb-4">
       <div className="flex items-center gap-3">
@@ -104,9 +120,17 @@ export default function ServiceOrderDetail() {
             {order.vehicle?.placa && <span className="uppercase"> ({order.vehicle.placa})</span>}
           </p>
         </div>
-        <span className={`px-2.5 py-1 rounded-full text-[10px] md:text-xs border ${statusColors[order.status] || ''}`}>
-          {order.status?.replace('_', ' ')}
-        </span>
+        <div className="flex items-center gap-2">
+          {prio && (
+            <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] ${prio.bg} ${prio.text}`}>
+              {prio.icon && <prio.icon size={12} />}
+              {prio.label}
+            </span>
+          )}
+          <span className={`px-2.5 py-1 rounded-full text-[10px] md:text-xs border ${statusColors[order.status] || ''}`}>
+            {order.status?.replace('_', ' ')}
+          </span>
+        </div>
       </div>
 
       {msg && (
@@ -236,6 +260,18 @@ export default function ServiceOrderDetail() {
       {/* Ações */}
       {canEdit && (
         <div className="flex flex-col gap-2">
+          <button
+            onClick={toggleAguardandoPeca}
+            className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-medium active:scale-[0.98] transition-all ${
+              order.aguardando_peca
+                ? 'bg-green-600/10 hover:bg-green-600/20 text-green-400 border border-green-600/30'
+                : 'bg-gray-600/10 hover:bg-gray-600/20 text-gray-400 border border-gray-600/30'
+            }`}
+          >
+            {order.aguardando_peca ? <CheckCircle size={18} /> : <Package size={18} />}
+            {order.aguardando_peca ? 'Peça chegou - Restaurar prioridade' : 'Aguardando peça'}
+          </button>
+
           {order.status === 'aberta' && (
             <button onClick={() => changeStatus('em_andamento')} className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl text-sm font-medium active:scale-[0.98] transition-all">
               <CheckCircle size={18} /> Iniciar Serviço
