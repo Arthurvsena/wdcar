@@ -193,7 +193,7 @@ def remove_part_from_order(order_id: int, order_part_id: int, user: User = Depen
     op = db.query(OrderPart).filter(OrderPart.id == order_part_id, OrderPart.order_id == order_id).first()
     if not op:
         raise HTTPException(status_code=404, detail="Order part not found")
-    part = db.query(Part).filter(Part.id == op.part_id).first()
+    part = db.query(Part).filter(Part.id == op.part_id, Part.oficina_id == user.oficina_id).first()
     if part:
         part.quantidade += op.quantidade
     db.delete(op)

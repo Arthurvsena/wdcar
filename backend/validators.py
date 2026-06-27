@@ -2,6 +2,8 @@ import re
 
 
 def _calc_dig(cpf: str, factor: int) -> int:
+    if not cpf or len(cpf) < factor - 1:
+        return 0
     total = sum(int(cpf[i]) * (factor - i) for i in range(len(cpf)))
     resto = total % 11
     return 0 if resto < 2 else 11 - resto
@@ -19,6 +21,8 @@ def is_valid_cpf(value: str) -> bool:
 
 
 def _calc_cnpj_dig(digits: str, mult: list[int]) -> int:
+    if not digits or len(digits) < len(mult):
+        return 0
     total = sum(int(digits[i]) * mult[i] for i in range(len(mult)))
     resto = total % 11
     return 0 if resto < 2 else 11 - resto

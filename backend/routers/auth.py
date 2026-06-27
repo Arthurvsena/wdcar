@@ -75,7 +75,7 @@ def upload_avatar(file: UploadFile = File(...), user: User = Depends(get_current
         if os.path.exists(old_path):
             try:
                 os.remove(old_path)
-            except:
+            except OSError:
                 pass
     user.avatar = avatar_url
     db.commit()

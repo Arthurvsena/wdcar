@@ -1,15 +1,20 @@
+import os
 from datetime import datetime, timedelta, timezone
+from dotenv import load_dotenv
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
+
+load_dotenv()
+
 from database import get_db
 from models import User
 
-SECRET_KEY = "wdocar-secret-key-change-in-production"
+SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "wdocar-fallback-insecure-key-change-in-production")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_DAYS = 30
+ACCESS_TOKEN_EXPIRE_DAYS = 1
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()

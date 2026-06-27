@@ -27,7 +27,7 @@ app.include_router(dashboard.router)
 
 import os
 os.makedirs("uploads/avatars", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.mount("/uploads", StaticFiles(directory="uploads", html=False), name="uploads")
 
 
 @app.get("/")

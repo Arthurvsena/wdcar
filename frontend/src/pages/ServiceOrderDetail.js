@@ -45,8 +45,8 @@ export default function ServiceOrderDetail() {
   const addPart = async () => {
     if (!selectedPart) return;
     try {
-      const { data } = await api.post(`/orders/${id}/parts`, { part_id: parseInt(selectedPart), quantidade: partQty });
-      showMsg(`Peça adicionada! Estoque restante: ${data.remaining_stock}`, 'success');
+      const { data } = await api.post(`/orders/${id}/parts`, { part_id: parseInt(selectedPart), quantidade: parseInt(partQty) || 1 });
+      showMsg(`Peça adicionada! Estoque restante: ${data.remaining_stock ?? 0}`, 'success');
       setShowAddPart(false);
       setSelectedPart('');
       setPartQty(1);
@@ -225,8 +225,8 @@ export default function ServiceOrderDetail() {
           <div className="p-4 bg-grafite-800/30 border-b border-grafite-800 space-y-2">
             <select value={selectedPart} onChange={(e) => setSelectedPart(e.target.value)} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-laranja-500">
               <option value="">Selecione uma peça</option>
-              {parts.filter((p) => p.quantidade > 0).map((p) => (
-                <option key={p.id} value={p.id}>{p.nome} (est: {p.quantidade}) - R$ {p.preco_venda.toFixed(2)}</option>
+              {parts.filter((p) => (p.quantidade ?? 0) > 0).map((p) => (
+                <option key={p.id} value={p.id}>{p.nome} (est: {p.quantidade ?? 0}) - R$ {(p.preco_venda ?? 0).toFixed(2)}</option>
               ))}
             </select>
             <div className="flex gap-2">
@@ -244,10 +244,10 @@ export default function ServiceOrderDetail() {
               <div key={op.id} className="flex items-center justify-between px-4 py-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-white truncate">{op.part_nome || `Peça #${op.part_id}`}</p>
-                  <p className="text-xs text-gray-400">{op.quantidade}x R$ {op.preco_unitario.toFixed(2)}</p>
+                  <p className="text-xs text-gray-400">{op.quantidade}x R$ {(op.preco_unitario ?? 0).toFixed(2)}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-laranja-400">R$ {(op.quantidade * op.preco_unitario).toFixed(2)}</span>
+                  <span className="text-sm font-medium text-laranja-400">R$ {((op.quantidade ?? 0) * (op.preco_unitario ?? 0)).toFixed(2)}</span>
                   {canEdit && <button onClick={() => removePart(op.id)} className="text-gray-500 hover:text-red-400 p-1"><Trash2 size={14} /></button>}
                 </div>
               </div>
@@ -288,9 +288,9 @@ export default function ServiceOrderDetail() {
           <div className="divide-y divide-grafite-800/50">
             {order.services_used.map((osv) => (
               <div key={osv.id} className="flex items-center justify-between px-4 py-3">
-                <p className="text-sm text-white truncate flex-1">{osv.service_nome || `Serviço #${osv.service_id}`}</p>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-laranja-400">R$ {osv.valor_cobrado.toFixed(2)}</span>
+<p className="text-sm text-white truncate flex-1">{osv.service_nome || `Serviço #${osv.service_id}`}</p>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-laranja-400">R$ {(osv.valor_cobrado ?? 0).toFixed(2)}</span>
                   {canEdit && <button onClick={() => removeService(osv.id)} className="text-gray-500 hover:text-red-400 p-1"><Trash2 size={14} /></button>}
                 </div>
               </div>
@@ -303,7 +303,7 @@ export default function ServiceOrderDetail() {
       <div className="bg-grafite-900 border border-grafite-800 rounded-xl p-4">
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-400">Valor Total</span>
-          <p className="text-xl md:text-2xl font-bold text-laranja-400">R$ {order.valor_total.toFixed(2)}</p>
+          <p className="text-xl md:text-2xl font-bold text-laranja-400">R$ {(order.valor_total ?? 0).toFixed(2)}</p>
         </div>
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-grafite-800">
           <div className="flex items-center gap-2">

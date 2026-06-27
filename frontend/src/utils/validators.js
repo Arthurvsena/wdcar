@@ -104,5 +104,9 @@ export function isValidCPFCNPJ(value) {
 }
 
 export function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  if (!email || typeof email !== 'string') return false;
+  const basic = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!basic.test(email)) return false;
+  const [local, domain] = email.split('@');
+  return local.length <= 64 && domain.length <= 255;
 }

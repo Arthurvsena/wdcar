@@ -132,18 +132,18 @@ export default function Parts() {
             ) : (
               displayList.map((p) => (
                 <div key={p.id} className="bg-grafite-900 border border-grafite-800 rounded-xl p-4 flex items-center gap-3 active:bg-grafite-800/30 transition-colors">
-                  <div className={`w-2 h-10 rounded-full flex-shrink-0 ${p.quantidade <= 0 ? 'bg-red-500' : p.quantidade <= 5 ? 'bg-laranja-500' : 'bg-green-500'}`} />
+                  <div className={`w-2 h-10 rounded-full flex-shrink-0 ${(p.quantidade ?? 0) <= 0 ? 'bg-red-500' : (p.quantidade ?? 0) <= 5 ? 'bg-laranja-500' : 'bg-green-500'}`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-medium truncate">{p.nome}</p>
                     <p className="text-xs text-gray-400">{p.codigo || 'Sem código'}</p>
                     <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xs text-gray-400">Compra: R$ {p.preco_compra.toFixed(2)}</span>
-                      <span className="text-xs font-medium text-laranja-400">Venda: R$ {p.preco_venda.toFixed(2)}</span>
+                      <span className="text-xs text-gray-400">Compra: R$ {(p.preco_compra ?? 0).toFixed(2)}</span>
+                      <span className="text-xs font-medium text-laranja-400">Venda: R$ {(p.preco_venda ?? 0).toFixed(2)}</span>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    <span className={`text-xs font-bold ${p.quantidade <= 0 ? 'text-red-400' : p.quantidade <= 5 ? 'text-laranja-400' : 'text-green-400'}`}>
-                      {p.quantidade} un
+                    <span className={`text-xs font-bold ${(p.quantidade ?? 0) <= 0 ? 'text-red-400' : (p.quantidade ?? 0) <= 5 ? 'text-laranja-400' : 'text-green-400'}`}>
+                      {p.quantidade ?? 0} un
                     </span>
                     <div className="flex gap-1">
                       <button onClick={() => openEdit(p)} className="text-gray-500 hover:text-laranja-400 p-1.5"><Edit3 size={14} /></button>

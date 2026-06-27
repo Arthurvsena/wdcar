@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from typing import Optional
 from datetime import datetime
 
@@ -132,6 +132,12 @@ class ServiceOut(ServiceBase):
 class OrderPartCreate(BaseModel):
     part_id: int
     quantidade: int = 1
+
+    @model_validator(mode="after")
+    def validate_quantidade(self):
+        if self.quantidade <= 0:
+            raise ValueError("quantidade must be positive")
+        return self
 
 
 class OrderServiceCreate(BaseModel):

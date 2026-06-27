@@ -4,8 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { Wrench } from 'lucide-react';
 
 export default function Login() {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isRegister, setIsRegister] = useState(false);
   const [oficinaName, setOficinaName] = useState('');

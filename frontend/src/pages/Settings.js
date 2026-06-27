@@ -69,10 +69,9 @@ export default function Settings() {
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const { data } = await api.post('/auth/me/avatar', formData, {
+      await api.post('/auth/me/avatar', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      login(authUser.username, '');
       showMsg('Avatar atualizado!', 'success');
     } catch (err) {
       showMsg('Erro ao enviar avatar', 'error');

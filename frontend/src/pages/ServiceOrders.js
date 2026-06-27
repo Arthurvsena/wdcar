@@ -208,7 +208,7 @@ export default function ServiceOrders() {
                         {o.vehicle?.placa && <span className="uppercase ml-1">• {o.vehicle.placa}</span>}
                       </p>
                       <div className="flex items-center justify-between mt-2">
-                        <span className="text-sm font-bold text-laranja-400">R$ {o.valor_total.toFixed(2)}</span>
+                        <span className="text-sm font-bold text-laranja-400">R$ {(o.valor_total ?? 0).toFixed(2)}</span>
                         <ChevronRight size={16} className="text-gray-600" />
                       </div>
                     </div>

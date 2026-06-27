@@ -69,7 +69,7 @@ export default function DashboardHome() {
     { label: 'Total Clientes', value: metrics.total_clientes, icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10', to: '/clientes' },
     { label: 'OS Abertas', value: metrics.os_abertas, icon: FileText, color: 'text-laranja-400', bg: 'bg-laranja-500/10', to: '/os?tab=abertas' },
     { label: 'OS Finalizadas', value: metrics.os_finalizadas, icon: TrendingUp, color: 'text-green-400', bg: 'bg-green-500/10', to: '/os?tab=finalizadas' },
-    { label: 'Faturamento do Mês', value: `R$ ${Number(metrics.faturamento_mes).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: DollarSign, color: 'text-green-400', bg: 'bg-green-500/10', to: '/os' },
+    { label: 'Faturamento do Mês', value: `R$ ${Number(metrics.faturamento_mes || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: DollarSign, color: 'text-green-400', bg: 'bg-green-500/10', to: '/os' },
     { label: 'OS em Espera', value: metrics.os_espera, icon: Package, color: 'text-orange-400', bg: 'bg-orange-500/10', to: '/os' },
     { label: 'Total Peças', value: metrics.total_pecas, icon: Package2, color: 'text-purple-400', bg: 'bg-purple-500/10', to: '/pecas' },
   ];

@@ -134,7 +134,7 @@ export default function Services() {
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-medium truncate">{s.nome}</p>
                     <p className="text-xs text-gray-400 truncate">{s.descricao || 'Sem descrição'}</p>
-                    <p className="text-xs font-medium text-laranja-400 mt-0.5">R$ {s.valor_mao_obra.toFixed(2)}</p>
+                    <p className="text-xs font-medium text-laranja-400 mt-0.5">R$ {(s.valor_mao_obra ?? 0).toFixed(2)}</p>
                   </div>
                   <div className="flex gap-1">
                     <button onClick={() => openEdit(s)} className="text-gray-500 hover:text-laranja-400 p-1.5"><Edit3 size={14} /></button>

@@ -97,8 +97,8 @@ export default function ClientView() {
               <div className="space-y-2">
                 {order.parts_used.map((p) => (
                   <div key={p.id} className="flex justify-between bg-grafite-800/50 rounded-xl p-3">
-                    <span className="text-sm text-white">{p.part_nome} x{p.quantidade}</span>
-                    <span className="text-sm font-medium text-laranja-400">R$ {(p.quantidade * p.preco_unitario).toFixed(2)}</span>
+                    <span className="text-sm text-white">{p.part_nome} x{p.quantidade ?? 0}</span>
+                    <span className="text-sm font-medium text-laranja-400">R$ {((p.quantidade ?? 0) * (p.preco_unitario ?? 0)).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
@@ -114,7 +114,7 @@ export default function ClientView() {
                 {order.services_used.map((s) => (
                   <div key={s.id} className="flex justify-between bg-grafite-800/50 rounded-xl p-3">
                     <span className="text-sm text-white">{s.service_nome}</span>
-                    <span className="text-sm font-medium text-laranja-400">R$ {s.valor_cobrado.toFixed(2)}</span>
+                    <span className="text-sm font-medium text-laranja-400">R$ {(s.valor_cobrado ?? 0).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
@@ -128,7 +128,7 @@ export default function ClientView() {
           <div className="border-t border-grafite-800 pt-4 mt-4">
             <div className="flex justify-between items-center">
               <span className="text-base text-white font-semibold">Valor Total</span>
-              <span className="text-xl font-bold text-laranja-400">R$ {order.valor_total.toFixed(2)}</span>
+              <span className="text-xl font-bold text-laranja-400">R$ {(order.valor_total ?? 0).toFixed(2)}</span>
             </div>
           </div>
         </div>

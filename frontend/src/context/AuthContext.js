@@ -13,7 +13,11 @@ export function AuthProvider({ children }) {
     if (token && saved) {
       try {
         setUser(JSON.parse(saved));
-      } catch {}
+      } catch (e) {
+        console.warn('Failed to parse stored user:', e);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
     }
     setLoading(false);
   }, []);

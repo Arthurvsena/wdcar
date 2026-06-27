@@ -138,22 +138,22 @@ export default function Finance() {
                   <ArrowUpRight size={14} className="text-green-400" />
                   <span className="text-[10px] text-gray-400">Entradas</span>
                 </div>
-                <p className="text-lg md:text-xl font-bold text-green-400 truncate">R$ {summary.total_entradas.toFixed(2)}</p>
+                <p className="text-lg md:text-xl font-bold text-green-400 truncate">R$ {(summary.total_entradas ?? 0).toFixed(2)}</p>
               </div>
               <div className="bg-grafite-900 border border-red-500/20 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <ArrowDownRight size={14} className="text-red-400" />
                   <span className="text-[10px] text-gray-400">Saídas</span>
                 </div>
-                <p className="text-lg md:text-xl font-bold text-red-400 truncate">R$ {summary.total_saidas.toFixed(2)}</p>
+                <p className="text-lg md:text-xl font-bold text-red-400 truncate">R$ {(summary.total_saidas ?? 0).toFixed(2)}</p>
               </div>
               <div className="bg-grafite-900 border border-laranja-500/20 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <DollarSign size={14} className="text-laranja-400" />
                   <span className="text-[10px] text-gray-400">Saldo</span>
                 </div>
-                <p className={`text-lg md:text-xl font-bold truncate ${summary.saldo >= 0 ? 'text-laranja-400' : 'text-red-400'}`}>
-                  R$ {summary.saldo.toFixed(2)}
+                <p className={`text-lg md:text-xl font-bold truncate ${(summary.saldo ?? 0) >= 0 ? 'text-laranja-400' : 'text-red-400'}`}>
+                  R$ {(summary.saldo ?? 0).toFixed(2)}
                 </p>
               </div>
             </div>
@@ -226,7 +226,7 @@ export default function Finance() {
                 <span className={`text-sm font-bold ${
                   t.tipo === 'entrada' ? 'text-green-400' : 'text-red-400'
                 }`}>
-                  {t.tipo === 'entrada' ? '+' : '-'} R$ {t.valor.toFixed(2)}
+                  {t.tipo === 'entrada' ? '+' : '-'} R$ {(t.valor ?? 0).toFixed(2)}
                 </span>
               </div>
             ))}
