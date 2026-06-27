@@ -30,6 +30,9 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     oficina_id = Column(Integer, index=True, nullable=False)
     nome_oficina = Column(String, default="Minha Oficina")
+    email = Column(String, nullable=True)
+    avatar = Column(String, nullable=True)
+    permissoes = Column(String, nullable=True)
 
 
 class Cliente(Base):

@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from database import engine, Base
 from routers import auth, clients, parts, services, orders, finance, dashboard
 
@@ -22,6 +23,11 @@ app.include_router(services.router)
 app.include_router(orders.router)
 app.include_router(finance.router)
 app.include_router(dashboard.router)
+
+
+import os
+os.makedirs("uploads/avatars", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
 @app.get("/")

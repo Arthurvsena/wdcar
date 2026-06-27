@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Users, Package2, Wrench, FileText,
   BarChart3, DollarSign, LogOut, Wrench as LogoIcon,
-  Menu, X, ChevronRight, Bell,
+  Menu, X, ChevronRight, Bell, Settings as SettingsIcon,
 } from 'lucide-react';
 
 const navItems = [
@@ -15,6 +15,7 @@ const navItems = [
   { label: 'OS', icon: FileText, path: '/os' },
   { label: 'Financeiro', icon: DollarSign, path: '/financeiro' },
   { label: 'Analytics', icon: BarChart3, path: '/analytics' },
+  { label: 'Configurações', icon: SettingsIcon, path: '/configuracoes' },
 ];
 
 const bottomNav = [
@@ -57,9 +58,9 @@ export default function Layout({ children }) {
             <Bell size={20} className="text-gray-400" />
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full" />
           </div>
-          <div className="w-8 h-8 bg-grafite-700 rounded-full flex items-center justify-center text-xs font-bold text-laranja-400">
+          <button onClick={() => navigate('/configuracoes')} className="w-8 h-8 bg-grafite-700 rounded-full flex items-center justify-center text-xs font-bold text-laranja-400 hover:bg-grafite-600 transition-colors">
             {user?.username?.charAt(0).toUpperCase()}
-          </div>
+          </button>
         </div>
       </header>
 
@@ -115,12 +116,12 @@ export default function Layout({ children }) {
         </nav>
 
         <div className="p-3 border-t border-grafite-800">
-          <div className="flex items-center gap-3 px-4 py-2 text-sm text-gray-400 mb-1">
+          <button onClick={() => { setDrawerOpen(false); navigate('/configuracoes'); }} className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-grafite-800 rounded-lg transition-all mb-1">
             <div className="w-8 h-8 bg-grafite-700 rounded-full flex items-center justify-center text-xs font-bold text-laranja-400">
               {user?.username?.charAt(0).toUpperCase()}
             </div>
             <span className="truncate">{user?.username}</span>
-          </div>
+          </button>
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 w-full px-4 py-3 text-sm text-gray-400 hover:text-red-400 hover:bg-grafite-800 rounded-lg transition-all"
@@ -172,15 +173,15 @@ export default function Layout({ children }) {
         </nav>
 
         <div className="p-3 border-t border-grafite-800">
-          <div className="flex items-center gap-3 px-4 py-2 text-sm text-gray-400">
+          <button onClick={() => navigate('/configuracoes')} className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-grafite-800 rounded-lg transition-all">
             <div className="w-8 h-8 bg-grafite-700 rounded-full flex items-center justify-center text-xs font-bold text-laranja-400">
               {user?.username?.charAt(0).toUpperCase()}
             </div>
             <span className="truncate">{user?.username}</span>
-          </div>
+          </button>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-400 hover:text-red-400 hover:bg-grafite-800 rounded-lg transition-all mt-1"
+            className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-400 hover:text-red-400 hover:bg-grafite-800 rounded-lg transition-all"
           >
             <LogOut size={18} />
             Sair

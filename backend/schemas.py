@@ -14,8 +14,29 @@ class UserOut(BaseModel):
     username: str
     oficina_id: int
     nome_oficina: str
+    email: Optional[str] = None
+    avatar: Optional[str] = None
+    permissoes: Optional[str] = None
     class Config:
         from_attributes = True
+
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    nome_oficina: Optional[str] = None
+    email: Optional[str] = None
+
+
+class UserPasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class UserCreateByAdmin(BaseModel):
+    username: str
+    password: str
+    email: Optional[str] = None
+    permissoes: Optional[str] = None
 
 
 class Token(BaseModel):
