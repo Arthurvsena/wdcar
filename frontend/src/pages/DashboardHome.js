@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
-import { Users, FileText, Package2, TrendingUp, Repeat, Car } from 'lucide-react';
+import { Users, FileText, Package2, TrendingUp, Repeat, Car, DollarSign, Package } from 'lucide-react';
 
 export default function DashboardHome() {
   const [metrics, setMetrics] = useState(null);
@@ -22,7 +22,9 @@ export default function DashboardHome() {
     { label: 'Total Clientes', value: metrics.total_clientes, icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10', to: '/clientes' },
     { label: 'OS Abertas', value: metrics.os_abertas, icon: FileText, color: 'text-laranja-400', bg: 'bg-laranja-500/10', to: '/os' },
     { label: 'OS Finalizadas', value: metrics.os_finalizadas, icon: TrendingUp, color: 'text-green-400', bg: 'bg-green-500/10', to: '/os' },
-    { label: 'Total Peças', value: metrics.pecas_mais_usadas?.reduce((a, b) => a + b.total, 0) || 0, icon: Package2, color: 'text-purple-400', bg: 'bg-purple-500/10', to: '/pecas' },
+    { label: 'Faturamento do Mês', value: `R$ ${Number(metrics.faturamento_mes).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: DollarSign, color: 'text-green-400', bg: 'bg-green-500/10', to: '/os' },
+    { label: 'OS em Espera', value: metrics.os_espera, icon: Package, color: 'text-orange-400', bg: 'bg-orange-500/10', to: '/os' },
+    { label: 'Total Peças', value: metrics.total_pecas, icon: Package2, color: 'text-purple-400', bg: 'bg-purple-500/10', to: '/pecas' },
   ];
 
   return (
@@ -34,7 +36,7 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
         {cards.map((card) => (
           <Link
             key={card.label}

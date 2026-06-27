@@ -3,11 +3,18 @@ import api from '../api';
 import { Plus, Trash2, Car, ChevronDown, ChevronUp, Phone, Mail, Fingerprint, Search, AlertCircle, Pencil } from 'lucide-react';
 import { formatCPFCNPJ, isValidCPFCNPJ, isValidEmail, unmask, formatPlate, formatPhone } from '../utils/validators';
 import { searchBrands, getModels } from '../utils/carData';
+import Pagination from '../components/Pagination';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
 export default function Clients() {
   const [clients, setClients] = useState([]);
+  const [filtered, setFiltered] = useState([]);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [form, setForm] = useState({ nome: '', cpf_cnpj: '', telefone: '', email: '' });
@@ -24,7 +31,18 @@ export default function Clients() {
   const brandRef = useRef(null);
   const modelRef = useRef(null);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [page]);
+
+  useEffect(() => {
+    if (!search) { setFiltered(clients); return; }
+    const q = search.toLowerCase();
+    setFiltered(clients.filter(c =>
+      c.nome?.toLowerCase().includes(q) ||
+      c.cpf_cnpj?.toLowerCase().includes(q) ||
+      c.telefone?.toLowerCase().includes(q) ||
+      c.email?.toLowerCase().includes(q)
+    ));
+  }, [search, clients]);
 
   useEffect(() => {
     function handleClick(e) {
@@ -35,8 +53,17 @@ export default function Clients() {
   }, []);
 
   const load = async () => {
-    const { data } = await api.get('/clients');
-    setClients(data);
+    setLoading(true);
+    setError('');
+    try {
+      const { data } = await api.get(`/clients?skip=${(page - 1) * 20}&limit=20`);
+      setClients(data ? (Array.isArray(data) ? data : (data.items || [])) : []);
+      setTotal(data ? (Array.isArray(data) ? data.length : (data.total || 0)) : 0);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Erro ao carregar clientes');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const validateField = (field) => {
@@ -144,8 +171,12 @@ export default function Clients() {
 
   const remove = async (id) => {
     if (!window.confirm('Remover cliente e todos os veículos?')) return;
-    await api.delete(`/clients/${id}`);
-    load();
+    try {
+      await api.delete(`/clients/${id}`);
+      load();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Erro ao remover cliente');
+    }
   };
 
   const checkPlateDuplicate = (plate) => {
@@ -202,8 +233,12 @@ export default function Clients() {
 
   const removeVehicle = async (clienteId, vehicleId) => {
     if (!window.confirm('Remover veículo?')) return;
-    await api.delete(`/clients/${clienteId}/vehicles/${vehicleId}`);
-    load();
+    try {
+      await api.delete(`/clients/${clienteId}/vehicles/${vehicleId}`);
+      load();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Erro ao remover veículo');
+    }
   };
 
   const selectBrand = (brand) => {
@@ -237,6 +272,23 @@ export default function Clients() {
         </button>
       </div>
 
+      <div className="relative">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <input
+          type="text"
+          placeholder="Buscar por nome, CPF/CNPJ, telefone ou email..."
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          className="w-full bg-grafite-900 border border-grafite-800 rounded-xl pl-9 pr-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500"
+        />
+      </div>
+
+      {error && (
+        <div className="px-4 py-3 rounded-xl text-sm bg-red-500/10 border border-red-500/30 text-red-400">
+          {error}
+        </div>
+      )}
+
       {showForm && (
         <form onSubmit={save} className="bg-grafite-900 border border-grafite-800 rounded-xl p-4 md:p-5 space-y-3">
           <div className="flex items-center justify-between mb-1">
@@ -268,141 +320,154 @@ export default function Clients() {
         </form>
       )}
 
-      <div className="space-y-3">
-        {clients.map((cli) => {
-          const expanded = expandedId === cli.id;
-          return (
-            <div key={cli.id} className="bg-grafite-900 border border-grafite-800 rounded-xl overflow-hidden">
-              <button
-                onClick={() => setExpandedId(expanded ? null : cli.id)}
-                className="w-full flex items-center justify-between p-4 text-left active:bg-grafite-800/50 transition-colors"
-              >
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-white font-semibold text-sm md:text-base truncate">{cli.nome}</h3>
-                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-400 mt-0.5">
-                    {cli.telefone && <span className="flex items-center gap-1"><Phone size={11} />{formatPhone(cli.telefone)}</span>}
-                    {cli.cpf_cnpj && <span className="flex items-center gap-1"><Fingerprint size={11} />{formatCPFCNPJ(cli.cpf_cnpj)}</span>}
-                    {cli.email && <span className="flex items-center gap-1"><Mail size={11} />{cli.email}</span>}
-                  </div>
-                  {cli.vehicles?.length > 0 && (
-                    <span className="text-xs text-laranja-400/70 mt-1 inline-block">{cli.vehicles.length} veículo(s)</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); startEdit(cli); }}
-                    className="text-gray-500 hover:text-laranja-400 p-2 transition-colors"
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); remove(cli.id); }}
-                    className="text-gray-500 hover:text-red-400 p-2 transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                  {expanded ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
-                </div>
-              </button>
-
-              {expanded && (
-                <div className="px-4 pb-4 border-t border-grafite-800 pt-3">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-xs font-medium text-gray-300 flex items-center gap-1.5"><Car size={14} /> Veículos</h4>
-                    <button
-                      onClick={() => {
-                        if (addVehFor === cli.id) {
-                          setAddVehFor(null); setEditingVehId(null); setVehForm({ placa: '', modelo: '', marca: '', ano: '', cor: '' }); setBrandQuery(''); setModelQuery(''); setVehError('');
-                        } else {
-                          setAddVehFor(cli.id);
-                        }
-                      }}
-                      className="text-xs text-laranja-400 hover:text-laranja-300 font-medium"
-                    >
-                      {addVehFor === cli.id ? 'Cancelar' : '+ Adicionar'}
-                    </button>
-                  </div>
-
-                  {addVehFor === cli.id && (
-                    <div className="space-y-2 mb-3 bg-grafite-800/50 rounded-lg p-3">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="col-span-2 relative" ref={brandRef}>
-                          <div className="relative">
-                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                            <input
-                              placeholder="Marca"
-                              value={brandQuery}
-                              onFocus={() => setShowBrandList(true)}
-                              onChange={(e) => { setBrandQuery(e.target.value); setVehForm({ ...vehForm, marca: e.target.value, modelo: '' }); setModelQuery(''); setShowBrandList(true); }}
-                              className="w-full bg-grafite-800 border border-grafite-700 rounded-lg pl-9 pr-3 py-2 text-white text-sm focus:outline-none focus:border-laranja-500"
-                            />
-                          </div>
-                          {brandResults.length > 0 && (
-                            <div className="absolute z-10 w-full mt-1 bg-grafite-800 border border-grafite-700 rounded-lg max-h-40 overflow-y-auto shadow-xl">
-                              {brandResults.map((b) => (
-                                <button key={b} type="button" onMouseDown={() => selectBrand(b)} className="w-full text-left px-3 py-2 text-white text-sm hover:bg-laranja-600/30 transition-colors">{b}</button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        <div className="col-span-2 relative" ref={modelRef}>
-                          <input
-                            placeholder="Modelo"
-                            value={modelQuery}
-                            onFocus={() => setModelFocused(true)}
-                            onBlur={() => setTimeout(() => setModelFocused(false), 200)}
-                            onChange={(e) => { setModelQuery(e.target.value); setVehForm({ ...vehForm, modelo: e.target.value }); }}
-                            disabled={!vehForm.marca}
-                            className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-laranja-500 disabled:opacity-40"
-                          />
-                          {filteredModels.length > 0 && (
-                            <div className="absolute z-10 w-full mt-1 bg-grafite-800 border border-grafite-700 rounded-lg max-h-40 overflow-y-auto shadow-xl">
-                              {filteredModels.map((m) => (
-                                <button key={m} type="button" onMouseDown={() => selectModel(m)} className="w-full text-left px-3 py-2 text-white text-sm hover:bg-laranja-600/30 transition-colors">{m}</button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        <input placeholder="Placa (XXX-0000)" value={vehForm.placa} onChange={(e) => setVehForm({ ...vehForm, placa: formatPlate(e.target.value) })} onBlur={() => { if (vehForm.placa && checkPlateDuplicate(vehForm.placa)) setVehError('Placa já cadastrada'); else setVehError(''); }} className="bg-grafite-800 border border-grafite-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-laranja-500 uppercase" />
-                        <input placeholder={`Ano (1900-${CURRENT_YEAR})`} value={vehForm.ano} onChange={(e) => setVehForm({ ...vehForm, ano: e.target.value.replace(/\D/g, '').slice(0, 4) })} onBlur={() => { const a = parseInt(vehForm.ano); if (vehForm.ano.length === 4 && (a < 1900 || a > CURRENT_YEAR)) setVehError(`Ano inválido (1900-${CURRENT_YEAR})`); else setVehError(''); }} className="bg-grafite-800 border border-grafite-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-laranja-500" />
-                        <input placeholder="Cor" value={vehForm.cor} onChange={(e) => setVehForm({ ...vehForm, cor: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '') })} onBlur={() => { if (vehForm.cor) setVehForm({ ...vehForm, cor: vehForm.cor.charAt(0).toUpperCase() + vehForm.cor.slice(1) }); }} className="bg-grafite-800 border border-grafite-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-laranja-500" />
-                      </div>
-                      {vehError && <p className="text-red-400 text-xs flex items-center gap-1"><AlertCircle size={12} />{vehError}</p>}
-                      <button onClick={() => addVehicle(cli.id)} disabled={!vehForm.marca || !vehForm.modelo || !vehForm.placa || !vehForm.ano || !vehForm.cor} className="w-full bg-laranja-600 text-white py-2.5 rounded-lg text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed">{editingVehId ? 'Salvar Veículo' : 'Adicionar Veículo'}</button>
+      {loading ? (
+        <div className="bg-grafite-900 border border-grafite-800 rounded-xl p-8 text-center text-gray-400 text-sm">
+          Carregando...
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-grafite-900 border border-grafite-800 rounded-xl p-8 text-center text-gray-500 text-sm">
+          {clients.length === 0 ? 'Nenhum cliente cadastrado' : 'Nenhum cliente encontrado para esta busca'}
+        </div>
+      ) : (
+        <>
+        <div className="space-y-3">
+          {filtered.map((cli) => {
+            const expanded = expandedId === cli.id;
+            return (
+              <div key={cli.id} className="bg-grafite-900 border border-grafite-800 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => setExpandedId(expanded ? null : cli.id)}
+                  className="w-full flex items-center justify-between p-4 text-left active:bg-grafite-800/50 transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-white font-semibold text-sm md:text-base truncate">{cli.nome}</h3>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-400 mt-0.5">
+                      {cli.telefone && <span className="flex items-center gap-1"><Phone size={11} />{formatPhone(cli.telefone)}</span>}
+                      {cli.cpf_cnpj && <span className="flex items-center gap-1"><Fingerprint size={11} />{formatCPFCNPJ(cli.cpf_cnpj)}</span>}
+                      {cli.email && <span className="flex items-center gap-1"><Mail size={11} />{cli.email}</span>}
                     </div>
-                  )}
-
-                  {(!cli.vehicles || cli.vehicles.length === 0) && addVehFor !== cli.id && (
-                    <p className="text-gray-500 text-xs text-center py-3">Nenhum veículo cadastrado</p>
-                  )}
-                  <div className="space-y-2">
-                    {cli.vehicles?.map((v) => (
-                      <div key={v.id} className="bg-grafite-800/50 border border-grafite-700 rounded-lg p-3 flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white text-sm font-medium truncate">{v.marca} {v.modelo}</p>
-                          <p className="text-xs text-gray-400 truncate">
-                            {v.placa && <span className="uppercase font-mono">Placa: {v.placa}</span>}
-                            {v.ano && <span> - Ano: {v.ano}</span>}
-                            {v.cor && <span> - Cor: {v.cor.charAt(0).toUpperCase() + v.cor.slice(1)}</span>}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => startEditVehicle(v, cli.id)} className="text-gray-500 hover:text-laranja-400 p-1.5 transition-colors">
-                            <Pencil size={14} />
-                          </button>
-                          <button onClick={() => removeVehicle(cli.id, v.id)} className="text-gray-500 hover:text-red-400 p-1.5 transition-colors">
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                    {cli.vehicles?.length > 0 && (
+                      <span className="text-xs text-laranja-400/70 mt-1 inline-block">{cli.vehicles.length} veículo(s)</span>
+                    )}
                   </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); startEdit(cli); }}
+                      className="text-gray-500 hover:text-laranja-400 p-2 transition-colors"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); remove(cli.id); }}
+                      className="text-gray-500 hover:text-red-400 p-2 transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                    {expanded ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
+                  </div>
+                </button>
+
+                {expanded && (
+                  <div className="px-4 pb-4 border-t border-grafite-800 pt-3">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-xs font-medium text-gray-300 flex items-center gap-1.5"><Car size={14} /> Veículos</h4>
+                      <button
+                        onClick={() => {
+                          if (addVehFor === cli.id) {
+                            setAddVehFor(null); setEditingVehId(null); setVehForm({ placa: '', modelo: '', marca: '', ano: '', cor: '' }); setBrandQuery(''); setModelQuery(''); setVehError('');
+                          } else {
+                            setAddVehFor(cli.id);
+                          }
+                        }}
+                        className="text-xs text-laranja-400 hover:text-laranja-300 font-medium"
+                      >
+                        {addVehFor === cli.id ? 'Cancelar' : '+ Adicionar'}
+                      </button>
+                    </div>
+
+                    {addVehFor === cli.id && (
+                      <div className="space-y-2 mb-3 bg-grafite-800/50 rounded-lg p-3">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="col-span-2 relative" ref={brandRef}>
+                            <div className="relative">
+                              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                              <input
+                                placeholder="Marca"
+                                value={brandQuery}
+                                onFocus={() => setShowBrandList(true)}
+                                onChange={(e) => { setBrandQuery(e.target.value); setVehForm({ ...vehForm, marca: e.target.value, modelo: '' }); setModelQuery(''); setShowBrandList(true); }}
+                                className="w-full bg-grafite-800 border border-grafite-700 rounded-lg pl-9 pr-3 py-2 text-white text-sm focus:outline-none focus:border-laranja-500"
+                              />
+                            </div>
+                            {brandResults.length > 0 && (
+                              <div className="absolute z-10 w-full mt-1 bg-grafite-800 border border-grafite-700 rounded-lg max-h-40 overflow-y-auto shadow-xl">
+                                {brandResults.map((b) => (
+                                  <button key={b} type="button" onMouseDown={() => selectBrand(b)} className="w-full text-left px-3 py-2 text-white text-sm hover:bg-laranja-600/30 transition-colors">{b}</button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="col-span-2 relative" ref={modelRef}>
+                            <input
+                              placeholder="Modelo"
+                              value={modelQuery}
+                              onFocus={() => setModelFocused(true)}
+                              onBlur={() => setTimeout(() => setModelFocused(false), 200)}
+                              onChange={(e) => { setModelQuery(e.target.value); setVehForm({ ...vehForm, modelo: e.target.value }); }}
+                              disabled={!vehForm.marca}
+                              className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-laranja-500 disabled:opacity-40"
+                            />
+                            {filteredModels.length > 0 && (
+                              <div className="absolute z-10 w-full mt-1 bg-grafite-800 border border-grafite-700 rounded-lg max-h-40 overflow-y-auto shadow-xl">
+                                {filteredModels.map((m) => (
+                                  <button key={m} type="button" onMouseDown={() => selectModel(m)} className="w-full text-left px-3 py-2 text-white text-sm hover:bg-laranja-600/30 transition-colors">{m}</button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <input placeholder="Placa (XXX-0000)" value={vehForm.placa} onChange={(e) => setVehForm({ ...vehForm, placa: formatPlate(e.target.value) })} onBlur={() => { if (vehForm.placa && checkPlateDuplicate(vehForm.placa)) setVehError('Placa já cadastrada'); else setVehError(''); }} className="bg-grafite-800 border border-grafite-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-laranja-500 uppercase" />
+                          <input placeholder={`Ano (1900-${CURRENT_YEAR})`} value={vehForm.ano} onChange={(e) => setVehForm({ ...vehForm, ano: e.target.value.replace(/\D/g, '').slice(0, 4) })} onBlur={() => { const a = parseInt(vehForm.ano); if (vehForm.ano.length === 4 && (a < 1900 || a > CURRENT_YEAR)) setVehError(`Ano inválido (1900-${CURRENT_YEAR})`); else setVehError(''); }} className="bg-grafite-800 border border-grafite-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-laranja-500" />
+                          <input placeholder="Cor" value={vehForm.cor} onChange={(e) => setVehForm({ ...vehForm, cor: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '') })} onBlur={() => { if (vehForm.cor) setVehForm({ ...vehForm, cor: vehForm.cor.charAt(0).toUpperCase() + vehForm.cor.slice(1) }); }} className="bg-grafite-800 border border-grafite-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-laranja-500" />
+                        </div>
+                        {vehError && <p className="text-red-400 text-xs flex items-center gap-1"><AlertCircle size={12} />{vehError}</p>}
+                        <button onClick={() => addVehicle(cli.id)} disabled={!vehForm.marca || !vehForm.modelo || !vehForm.placa || !vehForm.ano || !vehForm.cor} className="w-full bg-laranja-600 text-white py-2.5 rounded-lg text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed">{editingVehId ? 'Salvar Veículo' : 'Adicionar Veículo'}</button>
+                      </div>
+                    )}
+
+                    {(!cli.vehicles || cli.vehicles.length === 0) && addVehFor !== cli.id && (
+                      <p className="text-gray-500 text-xs text-center py-3">Nenhum veículo cadastrado</p>
+                    )}
+                    <div className="space-y-2">
+                      {cli.vehicles?.map((v) => (
+                        <div key={v.id} className="bg-grafite-800/50 border border-grafite-700 rounded-lg p-3 flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white text-sm font-medium truncate">{v.marca} {v.modelo}</p>
+                            <p className="text-xs text-gray-400 truncate">
+                              {v.placa && <span className="uppercase font-mono">Placa: {v.placa}</span>}
+                              {v.ano && <span> - Ano: {v.ano}</span>}
+                              {v.cor && <span> - Cor: {v.cor.charAt(0).toUpperCase() + v.cor.slice(1)}</span>}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => startEditVehicle(v, cli.id)} className="text-gray-500 hover:text-laranja-400 p-1.5 transition-colors">
+                              <Pencil size={14} />
+                            </button>
+                            <button onClick={() => removeVehicle(cli.id, v.id)} className="text-gray-500 hover:text-red-400 p-1.5 transition-colors">
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <Pagination page={page} totalPages={Math.ceil(total / 20)} onPageChange={setPage} />
+        </>
+      )}
     </div>
   );
 }

@@ -146,6 +146,13 @@ class ServiceOrderOut(BaseModel):
         from_attributes = True
 
 
+class TransactionCreate(BaseModel):
+    tipo: str
+    descricao: str
+    valor: float
+    referencia_id: Optional[int] = None
+
+
 class TransactionOut(BaseModel):
     id: int
     oficina_id: int
