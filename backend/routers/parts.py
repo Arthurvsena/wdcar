@@ -8,13 +8,37 @@ from auth import get_current_user
 router = APIRouter(prefix="/parts", tags=["parts"])
 
 
-@router.get("", response_model=list[PartOut])
-def list_parts(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.query(Part).filter(Part.oficina_id == user.oficina_id).all()
+@router.get("")
+def list_parts(skip: int = 0, limit: int = 50, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    query = db.query(Part).filter(Part.oficina_id == user.oficina_id)
+    total = query.count()
+    items = query.offset(skip).limit(limit).all()
+    return {"items": items, "total": total}
+
+
+@router.get("/{part_id}", response_model=PartOut)
+def get_part(part_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    part = db.query(Part).filter(Part.id == part_id, Part.oficina_id == user.oficina_id).first()
+    if not part:
+        raise HTTPException(status_code=404, detail="Part not found")
+    return part
 
 
 @router.post("", response_model=PartOut)
 def create_part(payload: PartCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    existing = db.query(Part).filter(
+        Part.oficina_id == user.oficina_id,
+        Part.nome == payload.nome
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Part with this name already exists")
+    if payload.codigo:
+        existing = db.query(Part).filter(
+            Part.oficina_id == user.oficina_id,
+            Part.codigo == payload.codigo
+        ).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Part with this code already exists")
     part = Part(oficina_id=user.oficina_id, **payload.model_dump())
     db.add(part)
     db.commit()
@@ -27,6 +51,21 @@ def update_part(part_id: int, payload: PartCreate, user: User = Depends(get_curr
     part = db.query(Part).filter(Part.id == part_id, Part.oficina_id == user.oficina_id).first()
     if not part:
         raise HTTPException(status_code=404, detail="Part not found")
+    existing = db.query(Part).filter(
+        Part.oficina_id == user.oficina_id,
+        Part.nome == payload.nome,
+        Part.id != part_id
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Part with this name already exists")
+    if payload.codigo:
+        existing = db.query(Part).filter(
+            Part.oficina_id == user.oficina_id,
+            Part.codigo == payload.codigo,
+            Part.id != part_id
+        ).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Part with this code already exists")
     for k, v in payload.model_dump().items():
         setattr(part, k, v)
     db.commit()

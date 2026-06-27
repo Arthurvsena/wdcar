@@ -37,19 +37,17 @@ def _calc_prioridade(o: ServiceOrder) -> int:
     return base + 50
 
 
-@router.get("", response_model=list[ServiceOrderOut])
-def list_orders(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    orders = (
-        db.query(ServiceOrder)
-        .filter(ServiceOrder.oficina_id == user.oficina_id)
-        .all()
-    )
+@router.get("")
+def list_orders(skip: int = 0, limit: int = 50, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    query = db.query(ServiceOrder).filter(ServiceOrder.oficina_id == user.oficina_id)
+    total = query.count()
+    orders = query.offset(skip).limit(limit).all()
     result = []
     for o in orders:
         o.prioridade = _calc_prioridade(o)
         result.append(_order_to_dict(o))
     result.sort(key=lambda x: x["prioridade"], reverse=True)
-    return result
+    return {"orders": result, "total": total}
 
 
 def _order_to_dict(o: ServiceOrder) -> dict:
@@ -118,6 +116,8 @@ def create_order(payload: ServiceOrderCreate, user: User = Depends(get_current_u
     veh = db.query(Vehicle).filter(Vehicle.id == payload.vehicle_id, Vehicle.oficina_id == user.oficina_id).first()
     if not veh:
         raise HTTPException(status_code=404, detail="Vehicle not found")
+    if veh.cliente_id != payload.cliente_id:
+        raise HTTPException(status_code=400, detail="Vehicle does not belong to this client")
     token = secrets.token_urlsafe(16)
     order = ServiceOrder(
         oficina_id=user.oficina_id,
@@ -187,6 +187,9 @@ def add_service_to_order(order_id: int, payload: OrderServiceCreate, user: User 
 
 @router.delete("/{order_id}/parts/{order_part_id}")
 def remove_part_from_order(order_id: int, order_part_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    order = db.query(ServiceOrder).filter(ServiceOrder.id == order_id, ServiceOrder.oficina_id == user.oficina_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
     op = db.query(OrderPart).filter(OrderPart.id == order_part_id, OrderPart.order_id == order_id).first()
     if not op:
         raise HTTPException(status_code=404, detail="Order part not found")
@@ -194,22 +197,21 @@ def remove_part_from_order(order_id: int, order_part_id: int, user: User = Depen
     if part:
         part.quantidade += op.quantidade
     db.delete(op)
-    order = db.query(ServiceOrder).filter(ServiceOrder.id == order_id).first()
-    if order:
-        _recalc_total(order, db)
+    _recalc_total(order, db)
     db.commit()
     return {"ok": True}
 
 
 @router.delete("/{order_id}/services/{order_service_id}")
 def remove_service_from_order(order_id: int, order_service_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    order = db.query(ServiceOrder).filter(ServiceOrder.id == order_id, ServiceOrder.oficina_id == user.oficina_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
     osv = db.query(OrderService).filter(OrderService.id == order_service_id, OrderService.order_id == order_id).first()
     if not osv:
         raise HTTPException(status_code=404, detail="Order service not found")
     db.delete(osv)
-    order = db.query(ServiceOrder).filter(ServiceOrder.id == order_id).first()
-    if order:
-        _recalc_total(order, db)
+    _recalc_total(order, db)
     db.commit()
     return {"ok": True}
 

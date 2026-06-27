@@ -5,6 +5,10 @@ import './styles/index.css';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+}
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>

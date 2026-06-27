@@ -44,10 +44,13 @@ def _check_vehicle_plate_duplicates(db: Session, ofid: int, placa: str, exclude_
         raise HTTPException(status_code=422, detail="Placa já cadastrada")
 
 
-@router.get("", response_model=list[ClienteWithVehicles])
-def list_clients(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+@router.get("")
+def list_clients(skip: int = 0, limit: int = 50, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     ofid = _get_oficina(user)
-    return db.query(Cliente).filter(Cliente.oficina_id == ofid).all()
+    query = db.query(Cliente).filter(Cliente.oficina_id == ofid)
+    total = query.count()
+    items = query.offset(skip).limit(limit).all()
+    return {"items": items, "total": total}
 
 
 @router.post("", response_model=ClienteOut)

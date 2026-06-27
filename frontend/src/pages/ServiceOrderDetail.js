@@ -64,6 +64,7 @@ export default function ServiceOrderDetail() {
   };
 
   const removeService = async (orderServiceId) => {
+    if (!window.confirm('Remover serviço?')) return;
     await api.delete(`/orders/${id}/services/${orderServiceId}`);
     load();
   };
@@ -84,6 +85,13 @@ export default function ServiceOrderDetail() {
     const link = `${window.location.origin}/orcamento/${order.orcamento_token}`;
     navigator.clipboard.writeText(link);
     showMsg('Link do orçamento copiado!', 'success');
+  };
+
+  const shareWhatsApp = () => {
+    if (!order?.orcamento_token) return;
+    const link = `${window.location.origin}/orcamento/${order.orcamento_token}`;
+    const message = `Olá! Segue o orçamento da sua OS #${order.id}: ${link}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   if (!order) return <div className="flex items-center justify-center min-h-[60vh] text-gray-400 text-sm">Carregando...</div>;
@@ -251,9 +259,14 @@ export default function ServiceOrderDetail() {
               'bg-gray-500/10 text-gray-400'
             }`}>{order.orcamento_status}</span>
           </div>
-          <button onClick={copyOrcLink} className="flex items-center gap-1.5 text-xs text-laranja-400 hover:text-laranja-300 font-medium">
-            <Share2 size={14} /> Compartilhar
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={shareWhatsApp} className="flex items-center gap-1.5 text-xs text-laranja-400 hover:text-laranja-300 font-medium">
+              <Share2 size={14} /> WhatsApp
+            </button>
+            <button onClick={copyOrcLink} className="flex items-center gap-1.5 text-xs text-laranja-400 hover:text-laranja-300 font-medium">
+              <Share2 size={14} /> Compartilhar
+            </button>
+          </div>
         </div>
       </div>
 
@@ -278,11 +291,11 @@ export default function ServiceOrderDetail() {
             </button>
           )}
           {order.status === 'em_andamento' && (
-            <button onClick={() => changeStatus('finalizada')} className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3.5 rounded-xl text-sm font-medium active:scale-[0.98] transition-all">
+            <button onClick={() => { if (window.confirm('Tem certeza que deseja finalizar esta OS?')) changeStatus('finalizada'); }} className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3.5 rounded-xl text-sm font-medium active:scale-[0.98] transition-all">
               <CheckCircle size={18} /> Finalizar OS
             </button>
           )}
-          <button onClick={() => changeStatus('cancelada')} className="w-full flex items-center justify-center gap-2 bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-600/30 py-3.5 rounded-xl text-sm font-medium active:scale-[0.98] transition-all">
+          <button onClick={() => { if (window.confirm('Tem certeza que deseja cancelar esta OS?')) changeStatus('cancelada'); }} className="w-full flex items-center justify-center gap-2 bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-600/30 py-3.5 rounded-xl text-sm font-medium active:scale-[0.98] transition-all">
             <XCircle size={18} /> Cancelar OS
           </button>
         </div>
