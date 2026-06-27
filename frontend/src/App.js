@@ -12,6 +12,7 @@ import ServiceOrderDetail from './pages/ServiceOrderDetail';
 import Finance from './pages/Finance';
 import Analytics from './pages/Analytics';
 import ClientView from './pages/ClientView';
+import Settings from './pages/Settings';
 
 export default function App() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
                 <Route path="/os/:id" element={<ServiceOrderDetail />} />
                 <Route path="/financeiro" element={<Finance />} />
                 <Route path="/analytics" element={<Analytics />} />
+                <Route path="/configuracoes" element={<Settings />} />
               </Routes>
             </Layout>
           </ProtectedRoute>
