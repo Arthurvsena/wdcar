@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Users, Package2, Wrench, FileText,
   BarChart3, DollarSign, LogOut, Wrench as LogoIcon,
-  Menu, X, ChevronRight,
+  Menu, X, ChevronRight, Bell,
 } from 'lucide-react';
 
 const navItems = [
@@ -46,14 +46,20 @@ export default function Layout({ children }) {
         <button onClick={() => setDrawerOpen(true)} className="text-gray-400 hover:text-white p-1">
           <Menu size={24} />
         </button>
-        <div className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2">
           <div className="w-8 h-8 bg-laranja-600 rounded-lg flex items-center justify-center">
             <LogoIcon size={18} className="text-white" />
           </div>
           <span className="font-bold text-white">WDOcar</span>
-        </div>
-        <div className="w-8 h-8 bg-grafite-700 rounded-full flex items-center justify-center text-xs font-bold text-laranja-400">
-          {user?.username?.charAt(0).toUpperCase()}
+        </Link>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Bell size={20} className="text-gray-400" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full" />
+          </div>
+          <div className="w-8 h-8 bg-grafite-700 rounded-full flex items-center justify-center text-xs font-bold text-laranja-400">
+            {user?.username?.charAt(0).toUpperCase()}
+          </div>
         </div>
       </header>
 
@@ -72,7 +78,7 @@ export default function Layout({ children }) {
         }`}
       >
         <div className="flex items-center justify-between p-4 border-b border-grafite-800">
-          <div className="flex items-center gap-3">
+          <Link to="/" onClick={() => setDrawerOpen(false)} className="flex items-center gap-3">
             <div className="w-10 h-10 bg-laranja-600 rounded-lg flex items-center justify-center">
               <LogoIcon size={22} className="text-white" />
             </div>
@@ -80,7 +86,7 @@ export default function Layout({ children }) {
               <h1 className="text-lg font-bold text-white">WDOcar</h1>
               <p className="text-xs text-gray-400">{user?.nome_oficina}</p>
             </div>
-          </div>
+          </Link>
           <button onClick={() => setDrawerOpen(false)} className="text-gray-400 hover:text-white p-1">
             <X size={22} />
           </button>
@@ -128,13 +134,19 @@ export default function Layout({ children }) {
       {/* ===== DESKTOP SIDEBAR ===== */}
       <aside className="hidden md:flex md:flex-col md:w-64 bg-grafite-900 border-r border-grafite-800 h-screen sticky top-0">
         <div className="p-5 border-b border-grafite-800">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-laranja-600 rounded-lg flex items-center justify-center">
-              <LogoIcon size={22} className="text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-white">WDOcar</h1>
-              <p className="text-xs text-gray-400">{user?.nome_oficina}</p>
+          <div className="flex items-center justify-between">
+            <Link to="/" className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-laranja-600 rounded-lg flex items-center justify-center">
+                <LogoIcon size={22} className="text-white" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-white">WDOcar</h1>
+                <p className="text-xs text-gray-400">{user?.nome_oficina}</p>
+              </div>
+            </Link>
+            <div className="relative">
+              <Bell size={20} className="text-gray-400" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full" />
             </div>
           </div>
         </div>

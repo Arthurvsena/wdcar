@@ -1,23 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import api from '../api';
 import { Plus, FileText, Search, ChevronRight, Clock, AlertTriangle, Package } from 'lucide-react';
 import Pagination from '../components/Pagination';
 
 const TABS = [
-  { key: 'abertas', label: 'Abertas', statuses: ['aberta', 'em_andamento'] },
+  { key: 'abertas', label: 'Abertas', statuses: ['aberta', 'em_andamento', 'aguardando_peca', 'aguardando_pagamento', 'aguardando_aprovacao_orcamento', 'orcamento_recusado'] },
   { key: 'finalizadas', label: 'Finalizadas', statuses: ['finalizada'] },
   { key: 'canceladas', label: 'Canceladas', statuses: ['cancelada'] },
 ];
 
 export default function ServiceOrders() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [clients, setClients] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState('abertas');
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'abertas');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -89,6 +90,10 @@ export default function ServiceOrders() {
   const statusStyles = {
     aberta: { bg: 'bg-yellow-500/10', dot: 'bg-yellow-400', label: 'Aberta' },
     em_andamento: { bg: 'bg-blue-500/10', dot: 'bg-blue-400', label: 'Em andamento' },
+    aguardando_peca: { bg: 'bg-gray-500/10', dot: 'bg-gray-400', label: 'Aguardando Peça' },
+    aguardando_pagamento: { bg: 'bg-orange-500/10', dot: 'bg-orange-400', label: 'Aguardando Pagamento' },
+    aguardando_aprovacao_orcamento: { bg: 'bg-purple-500/10', dot: 'bg-purple-400', label: 'Aguardando Aprovação' },
+    orcamento_recusado: { bg: 'bg-red-500/10', dot: 'bg-red-400', label: 'Orçamento Recusado' },
     finalizada: { bg: 'bg-green-500/10', dot: 'bg-green-400', label: 'Finalizada' },
     cancelada: { bg: 'bg-red-500/10', dot: 'bg-red-400', label: 'Cancelada' },
   };

@@ -9,6 +9,10 @@ from database import Base
 class OSStatus(str, enum.Enum):
     ABERTA = "aberta"
     EM_ANDAMENTO = "em_andamento"
+    AGUARDANDO_PECA = "aguardando_peca"
+    AGUARDANDO_PAGAMENTO = "aguardando_pagamento"
+    AGUARDANDO_APROVACAO = "aguardando_aprovacao_orcamento"
+    ORCAMENTO_RECUSADO = "orcamento_recusado"
     FINALIZADA = "finalizada"
     CANCELADA = "cancelada"
 
@@ -36,6 +40,11 @@ class Cliente(Base):
     cpf_cnpj = Column(String, nullable=True)
     telefone = Column(String, nullable=True)
     email = Column(String, nullable=True)
+    endereco = Column(String, nullable=True)
+    bairro = Column(String, nullable=True)
+    cidade = Column(String, nullable=True)
+    estado = Column(String, nullable=True)
+    cep = Column(String, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     vehicles = relationship("Vehicle", back_populates="cliente", cascade="all, delete-orphan")
