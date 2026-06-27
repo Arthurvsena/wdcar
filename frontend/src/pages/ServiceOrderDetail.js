@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
-import { ArrowLeft, Copy, CheckCircle, XCircle, Plus, Trash2, Share2, Wrench, Package2, AlertTriangle, Clock, Package } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Plus, Trash2, Wrench, Package2, AlertTriangle, Clock, Package, Play, DollarSign, FileText, ChevronDown, MessageCircle } from 'lucide-react';
 
 export default function ServiceOrderDetail() {
   const { id } = useParams();
@@ -16,12 +16,24 @@ export default function ServiceOrderDetail() {
   const [msgType, setMsgType] = useState('info');
   const [showAddPart, setShowAddPart] = useState(false);
   const [showAddService, setShowAddService] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     load();
     api.get('/parts').then(({ data }) => setParts(data));
     api.get('/services').then(({ data }) => setServices(data));
   }, [id]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowStatusDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const load = async () => {
     const { data } = await api.get(`/orders/${id}`);
@@ -74,17 +86,23 @@ export default function ServiceOrderDetail() {
     load();
   };
 
+  const handleStatusChange = async (status) => {
+    setShowStatusDropdown(false);
+    if (status === order.status) return;
+    if (status === 'finalizada') {
+      if (!window.confirm('Tem certeza que deseja finalizar esta OS?')) return;
+    }
+    if (status === 'cancelada') {
+      if (!window.confirm('Tem certeza que deseja cancelar esta OS?')) return;
+    }
+    await changeStatus(status);
+    showMsg(`Status alterado para ${statusLabels[status]}`, 'success');
+  };
+
   const toggleAguardandoPeca = async () => {
     await api.patch(`/orders/${id}`, { aguardando_peca: !order.aguardando_peca });
     load();
     showMsg(order.aguardando_peca ? 'Peça disponível - prioridade restaurada' : 'Aguardando peça - prioridade reduzida', 'info');
-  };
-
-  const copyOrcLink = () => {
-    if (!order?.orcamento_token) return;
-    const link = `${window.location.origin}/orcamento/${order.orcamento_token}`;
-    navigator.clipboard.writeText(link);
-    showMsg('Link do orçamento copiado!', 'success');
   };
 
   const shareWhatsApp = () => {
@@ -98,12 +116,48 @@ export default function ServiceOrderDetail() {
 
   const canEdit = order.status !== 'finalizada' && order.status !== 'cancelada';
 
+  const statusLabels = {
+    aberta: 'Aberta',
+    em_andamento: 'Em andamento',
+    aguardando_peca: 'Aguardando Peça',
+    aguardando_pagamento: 'Aguardando Pagamento',
+    aguardando_aprovacao_orcamento: 'Aguardando Aprovação',
+    orcamento_recusado: 'Orçamento Recusado',
+    finalizada: 'Finalizada',
+    cancelada: 'Cancelada',
+  };
+
   const statusColors = {
     aberta: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
     em_andamento: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    aguardando_peca: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+    aguardando_pagamento: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+    aguardando_aprovacao_orcamento: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+    orcamento_recusado: 'bg-red-500/20 text-red-400 border-red-500/30',
     finalizada: 'bg-green-500/20 text-green-400 border-green-500/30',
-    cancelada: 'bg-red-500/20 text-red-400 border-red-500/30',
+    cancelada: 'bg-red-700/20 text-red-500 border-red-700/30',
   };
+
+  const statusIcons = {
+    aberta: Clock,
+    em_andamento: Play,
+    aguardando_peca: Package,
+    aguardando_pagamento: DollarSign,
+    aguardando_aprovacao_orcamento: FileText,
+    orcamento_recusado: XCircle,
+    finalizada: CheckCircle,
+    cancelada: XCircle,
+  };
+
+  const statusOptions = [
+    'em_andamento',
+    'aguardando_peca',
+    'aguardando_pagamento',
+    'aguardando_aprovacao_orcamento',
+    'orcamento_recusado',
+    'finalizada',
+    'cancelada',
+  ];
 
   const getPriorityInfo = () => {
     if (order.status === 'finalizada' || order.status === 'cancelada') return null;
@@ -114,6 +168,7 @@ export default function ServiceOrderDetail() {
   };
 
   const prio = getPriorityInfo();
+  const StatusIcon = statusIcons[order.status] || Clock;
 
   return (
     <div className="space-y-4 pb-4">
@@ -136,7 +191,7 @@ export default function ServiceOrderDetail() {
             </span>
           )}
           <span className={`px-2.5 py-1 rounded-full text-[10px] md:text-xs border ${statusColors[order.status] || ''}`}>
-            {order.status?.replace('_', ' ')}
+            {statusLabels[order.status] || order.status?.replace('_', ' ')}
           </span>
         </div>
       </div>
@@ -259,15 +314,10 @@ export default function ServiceOrderDetail() {
               'bg-gray-500/10 text-gray-400'
             }`}>{order.orcamento_status}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={shareWhatsApp} className="flex items-center gap-1.5 text-xs text-laranja-400 hover:text-laranja-300 font-medium">
-              <Share2 size={14} /> WhatsApp
-            </button>
-            <button onClick={copyOrcLink} className="flex items-center gap-1.5 text-xs text-laranja-400 hover:text-laranja-300 font-medium">
-              <Share2 size={14} /> Compartilhar
-            </button>
-          </div>
         </div>
+        <button onClick={shareWhatsApp} className="w-full mt-3 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3.5 rounded-xl text-sm font-semibold active:scale-[0.98] transition-all shadow-lg shadow-green-600/30">
+          <MessageCircle size={20} /> Enviar Orçamento via WhatsApp
+        </button>
       </div>
 
       {/* Ações */}
@@ -285,19 +335,37 @@ export default function ServiceOrderDetail() {
             {order.aguardando_peca ? 'Peça chegou - Restaurar prioridade' : 'Aguardando peça'}
           </button>
 
-          {order.status === 'aberta' && (
-            <button onClick={() => changeStatus('em_andamento')} className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl text-sm font-medium active:scale-[0.98] transition-all">
-              <CheckCircle size={18} /> Iniciar Serviço
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+              className="w-full flex items-center justify-center gap-2 bg-laranja-600 hover:bg-laranja-700 text-white py-3.5 rounded-xl text-sm font-medium active:scale-[0.98] transition-all"
+            >
+              <StatusIcon size={18} />
+              {statusLabels[order.status]}
+              <ChevronDown size={18} className={`transition-transform ${showStatusDropdown ? 'rotate-180' : ''}`} />
             </button>
-          )}
-          {order.status === 'em_andamento' && (
-            <button onClick={() => { if (window.confirm('Tem certeza que deseja finalizar esta OS?')) changeStatus('finalizada'); }} className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3.5 rounded-xl text-sm font-medium active:scale-[0.98] transition-all">
-              <CheckCircle size={18} /> Finalizar OS
-            </button>
-          )}
-          <button onClick={() => { if (window.confirm('Tem certeza que deseja cancelar esta OS?')) changeStatus('cancelada'); }} className="w-full flex items-center justify-center gap-2 bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-600/30 py-3.5 rounded-xl text-sm font-medium active:scale-[0.98] transition-all">
-            <XCircle size={18} /> Cancelar OS
-          </button>
+            {showStatusDropdown && (
+              <div className="absolute top-full mt-1 left-0 right-0 bg-grafite-800 border border-grafite-700 rounded-xl overflow-hidden shadow-xl z-50">
+                {statusOptions.map((status) => {
+                  const Icon = statusIcons[status];
+                  return (
+                    <button
+                      key={status}
+                      onClick={() => handleStatusChange(status)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                        status === order.status
+                          ? 'bg-laranja-600/20 text-laranja-400 cursor-default'
+                          : 'text-white hover:bg-grafite-700'
+                      }`}
+                    >
+                      <Icon size={16} />
+                      {statusLabels[status]}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

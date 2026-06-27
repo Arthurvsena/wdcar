@@ -29,6 +29,11 @@ class ClienteBase(BaseModel):
     cpf_cnpj: Optional[str] = None
     telefone: Optional[str] = None
     email: Optional[str] = None
+    endereco: Optional[str] = None
+    bairro: Optional[str] = None
+    cidade: Optional[str] = None
+    estado: Optional[str] = None
+    cep: Optional[str] = None
 
 
 class ClienteCreate(ClienteBase):

@@ -1,11 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../api';
-import { Plus, Trash2, Car, ChevronDown, ChevronUp, Phone, Mail, Fingerprint, Search, AlertCircle, Pencil } from 'lucide-react';
+import { Plus, Trash2, Car, ChevronDown, ChevronUp, Phone, Mail, Fingerprint, Search, AlertCircle, Pencil, X } from 'lucide-react';
 import { formatCPFCNPJ, isValidCPFCNPJ, isValidEmail, unmask, formatPlate, formatPhone } from '../utils/validators';
 import { searchBrands, getModels } from '../utils/carData';
 import Pagination from '../components/Pagination';
 
 const CURRENT_YEAR = new Date().getFullYear();
+
+const ESTADOS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
+
+const formatCEP = (v) => {
+  const d = v.replace(/\D/g, '').slice(0, 8);
+  return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+};
 
 export default function Clients() {
   const [clients, setClients] = useState([]);
@@ -17,7 +24,7 @@ export default function Clients() {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
-  const [form, setForm] = useState({ nome: '', cpf_cnpj: '', telefone: '', email: '' });
+  const [form, setForm] = useState({ nome: '', cpf_cnpj: '', telefone: '', email: '', endereco: '', bairro: '', cidade: '', estado: '', cep: '' });
   const [errors, setErrors] = useState({});
   const [editingId, setEditingId] = useState(null);
   const [editingVehId, setEditingVehId] = useState(null);
@@ -139,7 +146,7 @@ export default function Clients() {
   const save = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-    const payload = { ...form, cpf_cnpj: unmask(form.cpf_cnpj), telefone: unmask(form.telefone) };
+    const payload = { ...form, cpf_cnpj: unmask(form.cpf_cnpj), telefone: unmask(form.telefone), cep: form.cep.replace(/\D/g, '') };
     try {
       if (editingId) {
         await api.put(`/clients/${editingId}`, payload);
@@ -148,7 +155,7 @@ export default function Clients() {
       }
       setShowForm(false);
       setEditingId(null);
-      setForm({ nome: '', cpf_cnpj: '', telefone: '', email: '' });
+      setForm({ nome: '', cpf_cnpj: '', telefone: '', email: '', endereco: '', bairro: '', cidade: '', estado: '', cep: '' });
       setErrors({});
       load();
     } catch (err) {
@@ -157,12 +164,24 @@ export default function Clients() {
     }
   };
 
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingId(null);
+    setForm({ nome: '', cpf_cnpj: '', telefone: '', email: '', endereco: '', bairro: '', cidade: '', estado: '', cep: '' });
+    setErrors({});
+  };
+
   const startEdit = (cli) => {
     setForm({
       nome: cli.nome,
       cpf_cnpj: formatCPFCNPJ(cli.cpf_cnpj || ''),
       telefone: formatPhone(cli.telefone || ''),
       email: cli.email || '',
+      endereco: cli.endereco || '',
+      bairro: cli.bairro || '',
+      cidade: cli.cidade || '',
+      estado: cli.estado || '',
+      cep: cli.cep ? formatCEP(cli.cep) : '',
     });
     setEditingId(cli.id);
     setShowForm(true);
@@ -254,6 +273,13 @@ export default function Clients() {
     setModelFocused(false);
   };
 
+  const openNewForm = () => {
+    setShowForm(true);
+    setEditingId(null);
+    setForm({ nome: '', cpf_cnpj: '', telefone: '', email: '', endereco: '', bairro: '', cidade: '', estado: '', cep: '' });
+    setErrors({});
+  };
+
   const brandResults = showBrandList && brandQuery.length >= 1 ? searchBrands(brandQuery) : [];
   const models = getModels(vehForm.marca);
   const filteredModels = modelFocused && modelQuery.length >= 1
@@ -267,7 +293,7 @@ export default function Clients() {
           <h1 className="text-xl md:text-2xl font-bold text-white">Clientes</h1>
           <p className="text-gray-400 text-xs md:text-sm">Gerencie sua base de clientes</p>
         </div>
-        <button onClick={() => { setShowForm(true); setEditingId(null); setForm({ nome: '', cpf_cnpj: '', telefone: '', email: '' }); setErrors({}); }} className="flex items-center gap-2 bg-laranja-600 hover:bg-laranja-700 text-white px-4 py-2.5 md:py-2 rounded-xl md:rounded-lg text-sm font-medium active:scale-95 transition-all shadow-lg shadow-laranja-600/20">
+        <button onClick={openNewForm} className="flex items-center gap-2 bg-laranja-600 hover:bg-laranja-700 text-white px-4 py-2.5 md:py-2 rounded-xl md:rounded-lg text-sm font-medium active:scale-95 transition-all shadow-lg shadow-laranja-600/20">
           <Plus size={18} /> <span className="hidden md:inline">Novo</span>
         </button>
       </div>
@@ -290,34 +316,69 @@ export default function Clients() {
       )}
 
       {showForm && (
-        <form onSubmit={save} className="bg-grafite-900 border border-grafite-800 rounded-xl p-4 md:p-5 space-y-3">
-          <div className="flex items-center justify-between mb-1">
-            <h2 className="text-white font-semibold text-sm">{editingId ? 'Editar Cliente' : 'Novo Cliente'}</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/60" onClick={closeForm} />
+          <div className="relative bg-grafite-900 border border-grafite-800 rounded-xl p-4 md:p-5 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-white font-semibold text-sm">{editingId ? 'Editar Cliente' : 'Novo Cliente'}</h2>
+              <button type="button" onClick={closeForm} className="text-gray-400 hover:text-white p-1 transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={save} className="space-y-3">
+              <div>
+                <input placeholder="Nome do cliente" value={form.nome} onChange={(e) => { setForm({ ...form, nome: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '') }); if (errors.nome) setErrors({ ...errors, nome: undefined }); }} onBlur={() => { if (!form.nome.trim()) setErrors({ ...errors, nome: 'Nome é obrigatório' }); else setErrors({ ...errors, nome: undefined }); }} className={`w-full bg-grafite-800 border ${errors.nome ? 'border-red-500' : 'border-grafite-700'} rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500`} />
+                {errors.nome && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.nome}</p>}
+              </div>
+              <div>
+                <input placeholder="CPF/CNPJ" value={form.cpf_cnpj} onChange={(e) => setForm({ ...form, cpf_cnpj: formatCPFCNPJ(e.target.value) })} onBlur={() => validateField('cpf_cnpj')} className={`w-full bg-grafite-800 border ${errors.cpf_cnpj ? 'border-red-500' : 'border-grafite-700'} rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500`} />
+                {errors.cpf_cnpj && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.cpf_cnpj}</p>}
+              </div>
+              <div>
+                <input placeholder="Telefone ((00) 9 0000-0000)" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: formatPhone(e.target.value) })} onBlur={() => validateField('telefone')} className={`w-full bg-grafite-800 border ${errors.telefone ? 'border-red-500' : 'border-grafite-700'} rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500`} />
+                {errors.telefone && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.telefone}</p>}
+              </div>
+              <div>
+                <input placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} onBlur={() => validateField('email')} className={`w-full bg-grafite-800 border ${errors.email ? 'border-red-500' : 'border-grafite-700'} rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500`} />
+                {errors.email && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.email}</p>}
+              </div>
+              <div className="border-t border-grafite-700 pt-3 mt-3">
+                <p className="text-xs font-medium text-gray-400 mb-2">Endereço</p>
+                <div className="space-y-3">
+                  <div>
+                    <input placeholder="Endereço" value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <input placeholder="Bairro" value={form.bairro} onChange={(e) => setForm({ ...form, bairro: e.target.value })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" />
+                    </div>
+                    <div>
+                      <input placeholder="Cidade" value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <select value={form.estado} onChange={(e) => setForm({ ...form, estado: e.target.value })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500 appearance-none">
+                        <option value="">Estado</option>
+                        {ESTADOS.map((uf) => (
+                          <option key={uf} value={uf}>{uf}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <input placeholder="CEP (XXXXX-XXX)" value={form.cep} onChange={(e) => setForm({ ...form, cep: formatCEP(e.target.value) })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {errors.geral && <p className="text-red-400 text-xs flex items-center gap-1"><AlertCircle size={12} />{errors.geral}</p>}
+              <div className="flex gap-2 pt-1">
+                <button type="submit" disabled={!form.nome.trim() || !form.cpf_cnpj || !form.telefone.trim() || !form.email.trim()} className="flex-1 bg-laranja-600 hover:bg-laranja-700 text-white py-3 rounded-lg text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed">Salvar</button>
+                <button type="button" onClick={closeForm} className="flex-1 bg-grafite-700 hover:bg-grafite-600 text-gray-300 py-3 rounded-lg text-sm">Cancelar</button>
+              </div>
+            </form>
           </div>
-          <div className="space-y-3">
-            <div>
-              <input placeholder="Nome do cliente" value={form.nome} onChange={(e) => { setForm({ ...form, nome: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '') }); if (errors.nome) setErrors({ ...errors, nome: undefined }); }} onBlur={() => { if (!form.nome.trim()) setErrors({ ...errors, nome: 'Nome é obrigatório' }); else setErrors({ ...errors, nome: undefined }); }} className={`w-full bg-grafite-800 border ${errors.nome ? 'border-red-500' : 'border-grafite-700'} rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500`} />
-              {errors.nome && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.nome}</p>}
-            </div>
-            <div>
-              <input placeholder="CPF/CNPJ" value={form.cpf_cnpj} onChange={(e) => setForm({ ...form, cpf_cnpj: formatCPFCNPJ(e.target.value) })} onBlur={() => validateField('cpf_cnpj')} className={`w-full bg-grafite-800 border ${errors.cpf_cnpj ? 'border-red-500' : 'border-grafite-700'} rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500`} />
-              {errors.cpf_cnpj && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.cpf_cnpj}</p>}
-            </div>
-            <div>
-              <input placeholder="Telefone ((00) 9 0000-0000)" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: formatPhone(e.target.value) })} onBlur={() => validateField('telefone')} className={`w-full bg-grafite-800 border ${errors.telefone ? 'border-red-500' : 'border-grafite-700'} rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500`} />
-              {errors.telefone && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.telefone}</p>}
-            </div>
-            <div>
-              <input placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} onBlur={() => validateField('email')} className={`w-full bg-grafite-800 border ${errors.email ? 'border-red-500' : 'border-grafite-700'} rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500`} />
-              {errors.email && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.email}</p>}
-            </div>
-          </div>
-          {errors.geral && <p className="text-red-400 text-xs flex items-center gap-1"><AlertCircle size={12} />{errors.geral}</p>}
-          <div className="flex gap-2 pt-1">
-            <button type="submit" disabled={!form.nome.trim() || !form.cpf_cnpj || !form.telefone.trim() || !form.email.trim()} className="flex-1 bg-laranja-600 hover:bg-laranja-700 text-white py-3 rounded-lg text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed">Salvar</button>
-            <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setErrors({}); }} className="flex-1 bg-grafite-700 hover:bg-grafite-600 text-gray-300 py-3 rounded-lg text-sm">Cancelar</button>
-          </div>
-        </form>
+        </div>
       )}
 
       {loading ? (
