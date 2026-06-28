@@ -13,6 +13,7 @@ import Finance from './pages/Finance';
 import Analytics from './pages/Analytics';
 import ClientView from './pages/ClientView';
 import Settings from './pages/Settings';
+import Perfil from './pages/Perfil';
 
 export default function App() {
   return (
@@ -33,7 +34,15 @@ export default function App() {
                 <Route path="/os/:id" element={<ServiceOrderDetail />} />
                 <Route path="/financeiro" element={<Finance />} />
                 <Route path="/analytics" element={<Analytics />} />
-                <Route path="/configuracoes" element={<Settings />} />
+                <Route path="/perfil" element={<Perfil />} />
+                <Route
+                  path="/configuracoes"
+                  element={
+                    <ProtectedRoute allowedRoles={['master', 'admin']}>
+                      <Settings />
+                    </ProtectedRoute>
+                  }
+                />
               </Routes>
             </Layout>
           </ProtectedRoute>

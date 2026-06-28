@@ -5,6 +5,7 @@ from database import get_db
 from models import User
 from schemas import UserCreate, UserUpdate, UserPasswordChange, UserCreateByAdmin, Token, UserOut
 from auth import hash_password, verify_password, create_access_token, get_current_user
+from permissions import require_master_or_admin
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -19,16 +20,27 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Username already exists")
     max_oficina = db.query(User.oficina_id).order_by(User.oficina_id.desc()).first()
     next_oficina_id = (max_oficina[0] + 1) if max_oficina else 1
+    is_first_user = max_oficina is None
+    is_master = is_first_user
+    role = "master" if is_first_user else "user"
     user = User(
         username=payload.username,
         hashed_password=hash_password(payload.password),
         oficina_id=next_oficina_id,
         nome_oficina=payload.nome_oficina,
+        is_master=is_master,
+        role=role,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
-    token = create_access_token({"user_id": user.id, "oficina_id": user.oficina_id})
+    token = create_access_token({
+        "user_id": user.id,
+        "oficina_id": user.oficina_id,
+        "role": user.role,
+        "is_master": user.is_master,
+        "is_dev": user.is_dev,
+    })
     return Token(access_token=token, user=UserOut.model_validate(user))
 
 
@@ -37,7 +49,13 @@ def login(payload: UserCreate, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == payload.username).first()
     if not user or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    token = create_access_token({"user_id": user.id, "oficina_id": user.oficina_id})
+    token = create_access_token({
+        "user_id": user.id,
+        "oficina_id": user.oficina_id,
+        "role": user.role,
+        "is_master": user.is_master,
+        "is_dev": user.is_dev,
+    })
     return Token(access_token=token, user=UserOut.model_validate(user))
 
 
@@ -93,13 +111,15 @@ def change_password(payload: UserPasswordChange, user: User = Depends(get_curren
 
 
 @router.get("/users", response_model=list[UserOut])
-def list_users(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def list_users(user: User = Depends(require_master_or_admin), db: Session = Depends(get_db)):
     users = db.query(User).filter(User.oficina_id == user.oficina_id).all()
     return [UserOut.model_validate(u) for u in users]
 
 
 @router.post("/users", response_model=UserOut)
-def create_user(payload: UserCreateByAdmin, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def create_user(payload: UserCreateByAdmin, user: User = Depends(require_master_or_admin), db: Session = Depends(get_db)):
+    if payload.is_dev and not user.is_master:
+        raise HTTPException(status_code=403, detail="Only master can create dev users")
     existing = db.query(User).filter(User.username == payload.username).first()
     if existing:
         raise HTTPException(status_code=400, detail="Username already exists")
@@ -109,6 +129,8 @@ def create_user(payload: UserCreateByAdmin, user: User = Depends(get_current_use
         oficina_id=user.oficina_id,
         email=payload.email,
         permissoes=payload.permissoes,
+        role=payload.role.value if payload.role else "user",
+        is_dev=payload.is_dev if payload.is_dev is not None else False,
     )
     db.add(novo)
     db.commit()
@@ -117,10 +139,12 @@ def create_user(payload: UserCreateByAdmin, user: User = Depends(get_current_use
 
 
 @router.put("/users/{user_id}", response_model=UserOut)
-def update_user(user_id: int, payload: UserCreateByAdmin, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def update_user(user_id: int, payload: UserCreateByAdmin, current_user: User = Depends(require_master_or_admin), db: Session = Depends(get_db)):
     target = db.query(User).filter(User.id == user_id, User.oficina_id == current_user.oficina_id).first()
     if not target:
         raise HTTPException(status_code=404, detail="User not found")
+    if payload.is_dev and not current_user.is_master:
+        raise HTTPException(status_code=403, detail="Only master can modify dev status")
     if payload.username is not None and payload.username != target.username:
         existing = db.query(User).filter(User.username == payload.username).first()
         if existing:
@@ -132,13 +156,17 @@ def update_user(user_id: int, payload: UserCreateByAdmin, current_user: User = D
         target.email = payload.email
     if payload.permissoes is not None:
         target.permissoes = payload.permissoes
+    if payload.role is not None:
+        target.role = payload.role.value
+    if payload.is_dev is not None and current_user.is_master:
+        target.is_dev = payload.is_dev
     db.commit()
     db.refresh(target)
     return UserOut.model_validate(target)
 
 
 @router.delete("/users/{user_id}")
-def delete_user(user_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def delete_user(user_id: int, current_user: User = Depends(require_master_or_admin), db: Session = Depends(get_db)):
     if user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot delete yourself")
     target = db.query(User).filter(User.id == user_id, User.oficina_id == current_user.oficina_id).first()

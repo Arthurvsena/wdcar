@@ -290,8 +290,8 @@ export default function Clients() {
     <div className="space-y-4 pb-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-white">Clientes</h1>
-          <p className="text-gray-400 text-xs md:text-sm">Gerencie sua base de clientes</p>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Clientes</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm">Gerencie sua base de clientes</p>
         </div>
         <button onClick={openNewForm} className="flex items-center gap-2 bg-laranja-600 hover:bg-laranja-700 text-white px-4 py-2.5 md:py-2 rounded-xl md:rounded-lg text-sm font-medium active:scale-95 transition-all shadow-lg shadow-laranja-600/20">
           <Plus size={18} /> <span className="hidden md:inline">Novo</span>
@@ -299,13 +299,13 @@ export default function Clients() {
       </div>
 
       <div className="relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none" />
         <input
           type="text"
           placeholder="Buscar por nome, CPF/CNPJ, telefone ou email..."
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="w-full bg-grafite-900 border border-grafite-800 rounded-xl pl-9 pr-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500"
+          className="w-full bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl pl-9 pr-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500"
         />
       </div>
 
@@ -318,47 +318,47 @@ export default function Clients() {
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/60" onClick={closeForm} />
-          <div className="relative bg-grafite-900 border border-grafite-800 rounded-xl p-4 md:p-5 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+          <div className="relative bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-4 md:p-5 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-white font-semibold text-sm">{editingId ? 'Editar Cliente' : 'Novo Cliente'}</h2>
-              <button type="button" onClick={closeForm} className="text-gray-400 hover:text-white p-1 transition-colors">
+              <h2 className="text-gray-900 dark:text-white font-semibold text-sm">{editingId ? 'Editar Cliente' : 'Novo Cliente'}</h2>
+              <button type="button" onClick={closeForm} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white p-1 transition-colors">
                 <X size={18} />
               </button>
             </div>
             <form onSubmit={save} className="space-y-3">
               <div>
-                <input placeholder="Nome do cliente" value={form.nome} onChange={(e) => { setForm({ ...form, nome: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '') }); if (errors.nome) setErrors({ ...errors, nome: undefined }); }} onBlur={() => { if (!form.nome.trim()) setErrors({ ...errors, nome: 'Nome é obrigatório' }); else setErrors({ ...errors, nome: undefined }); }} className={`w-full bg-grafite-800 border ${errors.nome ? 'border-red-500' : 'border-grafite-700'} rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500`} />
+                <input placeholder="Nome do cliente" value={form.nome} onChange={(e) => { setForm({ ...form, nome: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '') }); if (errors.nome) setErrors({ ...errors, nome: undefined }); }} onBlur={() => { if (!form.nome.trim()) setErrors({ ...errors, nome: 'Nome é obrigatório' }); else setErrors({ ...errors, nome: undefined }); }} className={`w-full bg-gray-100 dark:bg-grafite-800 border ${errors.nome ? 'border-red-500' : 'border-gray-300 dark:border-grafite-700'} rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500`} />
                 {errors.nome && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.nome}</p>}
               </div>
               <div>
-                <input placeholder="CPF/CNPJ" value={form.cpf_cnpj} onChange={(e) => setForm({ ...form, cpf_cnpj: formatCPFCNPJ(e.target.value) })} onBlur={() => validateField('cpf_cnpj')} className={`w-full bg-grafite-800 border ${errors.cpf_cnpj ? 'border-red-500' : 'border-grafite-700'} rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500`} />
+                <input placeholder="CPF/CNPJ" value={form.cpf_cnpj} onChange={(e) => setForm({ ...form, cpf_cnpj: formatCPFCNPJ(e.target.value) })} onBlur={() => validateField('cpf_cnpj')} className={`w-full bg-gray-100 dark:bg-grafite-800 border ${errors.cpf_cnpj ? 'border-red-500' : 'border-gray-300 dark:border-grafite-700'} rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500`} />
                 {errors.cpf_cnpj && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.cpf_cnpj}</p>}
               </div>
               <div>
-                <input placeholder="Telefone ((00) 9 0000-0000)" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: formatPhone(e.target.value) })} onBlur={() => validateField('telefone')} className={`w-full bg-grafite-800 border ${errors.telefone ? 'border-red-500' : 'border-grafite-700'} rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500`} />
+                <input placeholder="Telefone ((00) 9 0000-0000)" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: formatPhone(e.target.value) })} onBlur={() => validateField('telefone')} className={`w-full bg-gray-100 dark:bg-grafite-800 border ${errors.telefone ? 'border-red-500' : 'border-gray-300 dark:border-grafite-700'} rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500`} />
                 {errors.telefone && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.telefone}</p>}
               </div>
               <div>
-                <input placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} onBlur={() => validateField('email')} className={`w-full bg-grafite-800 border ${errors.email ? 'border-red-500' : 'border-grafite-700'} rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500`} />
+                <input placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} onBlur={() => validateField('email')} className={`w-full bg-gray-100 dark:bg-grafite-800 border ${errors.email ? 'border-red-500' : 'border-gray-300 dark:border-grafite-700'} rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500`} />
                 {errors.email && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.email}</p>}
               </div>
-              <div className="border-t border-grafite-700 pt-3 mt-3">
-                <p className="text-xs font-medium text-gray-400 mb-2">Endereço</p>
+              <div className="border-t border-gray-200 dark:border-grafite-700 pt-3 mt-3">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Endereço</p>
                 <div className="space-y-3">
                   <div>
-                    <input placeholder="Endereço" value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" />
+                    <input placeholder="Endereço" value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <input placeholder="Bairro" value={form.bairro} onChange={(e) => setForm({ ...form, bairro: e.target.value })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" />
+                      <input placeholder="Bairro" value={form.bairro} onChange={(e) => setForm({ ...form, bairro: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
                     </div>
                     <div>
-                      <input placeholder="Cidade" value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" />
+                      <input placeholder="Cidade" value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <select value={form.estado} onChange={(e) => setForm({ ...form, estado: e.target.value })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500 appearance-none">
+                      <select value={form.estado} onChange={(e) => setForm({ ...form, estado: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500 appearance-none">
                         <option value="">Estado</option>
                         {ESTADOS.map((uf) => (
                           <option key={uf} value={uf}>{uf}</option>
@@ -366,7 +366,7 @@ export default function Clients() {
                       </select>
                     </div>
                     <div>
-                      <input placeholder="CEP (XXXXX-XXX)" value={form.cep} onChange={(e) => setForm({ ...form, cep: formatCEP(e.target.value) })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" />
+                      <input placeholder="CEP (XXXXX-XXX)" value={form.cep} onChange={(e) => setForm({ ...form, cep: formatCEP(e.target.value) })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
                     </div>
                   </div>
                 </div>
@@ -374,7 +374,7 @@ export default function Clients() {
               {errors.geral && <p className="text-red-400 text-xs flex items-center gap-1"><AlertCircle size={12} />{errors.geral}</p>}
               <div className="flex gap-2 pt-1">
                 <button type="submit" disabled={!form.nome.trim() || !form.cpf_cnpj || !form.telefone.trim() || !form.email.trim()} className="flex-1 bg-laranja-600 hover:bg-laranja-700 text-white py-3 rounded-lg text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed">Salvar</button>
-                <button type="button" onClick={closeForm} className="flex-1 bg-grafite-700 hover:bg-grafite-600 text-gray-300 py-3 rounded-lg text-sm">Cancelar</button>
+                <button type="button" onClick={closeForm} className="flex-1 bg-gray-200 dark:bg-grafite-700 hover:bg-gray-300 dark:hover:bg-grafite-600 text-gray-700 dark:text-gray-300 py-3 rounded-lg text-sm">Cancelar</button>
               </div>
             </form>
           </div>
@@ -382,11 +382,11 @@ export default function Clients() {
       )}
 
       {loading ? (
-        <div className="bg-grafite-900 border border-grafite-800 rounded-xl p-8 text-center text-gray-400 text-sm">
+        <div className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-8 text-center text-gray-500 dark:text-gray-400 text-sm">
           Carregando...
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-grafite-900 border border-grafite-800 rounded-xl p-8 text-center text-gray-500 text-sm">
+        <div className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-8 text-center text-gray-500 dark:text-gray-400 text-sm">
           {clients.length === 0 ? 'Nenhum cliente cadastrado' : 'Nenhum cliente encontrado para esta busca'}
         </div>
       ) : (
@@ -395,43 +395,43 @@ export default function Clients() {
           {filtered.map((cli) => {
             const expanded = expandedId === cli.id;
             return (
-              <div key={cli.id} className="bg-grafite-900 border border-grafite-800 rounded-xl overflow-hidden">
+              <div key={cli.id} className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl overflow-hidden">
                 <button
                   onClick={() => setExpandedId(expanded ? null : cli.id)}
-                  className="w-full flex items-center justify-between p-4 text-left active:bg-grafite-800/50 transition-colors"
+                  className="w-full flex items-center justify-between p-4 text-left active:bg-gray-100 dark:active:bg-grafite-800/50 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-white font-semibold text-sm md:text-base truncate">{cli.nome}</h3>
-                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-400 mt-0.5">
+                    <h3 className="text-gray-900 dark:text-white font-semibold text-sm md:text-base truncate">{cli.nome}</h3>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       {cli.telefone && <span className="flex items-center gap-1"><Phone size={11} />{formatPhone(cli.telefone)}</span>}
                       {cli.cpf_cnpj && <span className="flex items-center gap-1"><Fingerprint size={11} />{formatCPFCNPJ(cli.cpf_cnpj)}</span>}
                       {cli.email && <span className="flex items-center gap-1"><Mail size={11} />{cli.email}</span>}
                     </div>
                     {cli.vehicles?.length > 0 && (
-                      <span className="text-xs text-laranja-400/70 mt-1 inline-block">{cli.vehicles.length} veículo(s)</span>
+                      <span className="text-xs text-laranja-600 dark:text-laranja-400/70 mt-1 inline-block">{cli.vehicles.length} veículo(s)</span>
                     )}
                   </div>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={(e) => { e.stopPropagation(); startEdit(cli); }}
-                      className="text-gray-500 hover:text-laranja-400 p-2 transition-colors"
+                      className="text-gray-400 dark:text-gray-500 hover:text-laranja-400 p-2 transition-colors"
                     >
                       <Pencil size={16} />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); remove(cli.id); }}
-                      className="text-gray-500 hover:text-red-400 p-2 transition-colors"
+                      className="text-gray-400 dark:text-gray-500 hover:text-red-400 p-2 transition-colors"
                     >
                       <Trash2 size={16} />
                     </button>
-                    {expanded ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
+                    {expanded ? <ChevronUp size={18} className="text-gray-500 dark:text-gray-400" /> : <ChevronDown size={18} className="text-gray-500 dark:text-gray-400" />}
                   </div>
                 </button>
 
                 {expanded && (
-                  <div className="px-4 pb-4 border-t border-grafite-800 pt-3">
+                  <div className="px-4 pb-4 border-t border-gray-200 dark:border-grafite-800 pt-3">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-xs font-medium text-gray-300 flex items-center gap-1.5"><Car size={14} /> Veículos</h4>
+                      <h4 className="text-xs font-medium text-gray-600 dark:text-gray-300 flex items-center gap-1.5"><Car size={14} /> Veículos</h4>
                       <button
                         onClick={() => {
                           if (addVehFor === cli.id) {
@@ -440,30 +440,30 @@ export default function Clients() {
                             setAddVehFor(cli.id);
                           }
                         }}
-                        className="text-xs text-laranja-400 hover:text-laranja-300 font-medium"
+                        className="text-xs text-laranja-600 dark:text-laranja-400 hover:text-laranja-500 dark:hover:text-laranja-300 font-medium"
                       >
                         {addVehFor === cli.id ? 'Cancelar' : '+ Adicionar'}
                       </button>
                     </div>
 
                     {addVehFor === cli.id && (
-                      <div className="space-y-2 mb-3 bg-grafite-800/50 rounded-lg p-3">
+                      <div className="space-y-2 mb-3 bg-gray-50 dark:bg-grafite-800/50 rounded-lg p-3">
                         <div className="grid grid-cols-2 gap-2">
                           <div className="col-span-2 relative" ref={brandRef}>
                             <div className="relative">
-                              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none" />
                               <input
                                 placeholder="Marca"
                                 value={brandQuery}
                                 onFocus={() => setShowBrandList(true)}
                                 onChange={(e) => { setBrandQuery(e.target.value); setVehForm({ ...vehForm, marca: e.target.value, modelo: '' }); setModelQuery(''); setShowBrandList(true); }}
-                                className="w-full bg-grafite-800 border border-grafite-700 rounded-lg pl-9 pr-3 py-2 text-white text-sm focus:outline-none focus:border-laranja-500"
+                                className="w-full bg-white dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg pl-9 pr-3 py-2 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500"
                               />
                             </div>
                             {brandResults.length > 0 && (
-                              <div className="absolute z-10 w-full mt-1 bg-grafite-800 border border-grafite-700 rounded-lg max-h-40 overflow-y-auto shadow-xl">
+                              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-grafite-800 border border-gray-200 dark:border-grafite-700 rounded-lg max-h-40 overflow-y-auto shadow-xl">
                                 {brandResults.map((b) => (
-                                  <button key={b} type="button" onMouseDown={() => selectBrand(b)} className="w-full text-left px-3 py-2 text-white text-sm hover:bg-laranja-600/30 transition-colors">{b}</button>
+                                  <button key={b} type="button" onMouseDown={() => selectBrand(b)} className="w-full text-left px-3 py-2 text-gray-900 dark:text-white text-sm hover:bg-laranja-600/30 transition-colors">{b}</button>
                                 ))}
                               </div>
                             )}
@@ -476,19 +476,19 @@ export default function Clients() {
                               onBlur={() => setTimeout(() => setModelFocused(false), 200)}
                               onChange={(e) => { setModelQuery(e.target.value); setVehForm({ ...vehForm, modelo: e.target.value }); }}
                               disabled={!vehForm.marca}
-                              className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-laranja-500 disabled:opacity-40"
+                              className="w-full bg-white dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500 disabled:opacity-40"
                             />
                             {filteredModels.length > 0 && (
-                              <div className="absolute z-10 w-full mt-1 bg-grafite-800 border border-grafite-700 rounded-lg max-h-40 overflow-y-auto shadow-xl">
+                              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-grafite-800 border border-gray-200 dark:border-grafite-700 rounded-lg max-h-40 overflow-y-auto shadow-xl">
                                 {filteredModels.map((m) => (
-                                  <button key={m} type="button" onMouseDown={() => selectModel(m)} className="w-full text-left px-3 py-2 text-white text-sm hover:bg-laranja-600/30 transition-colors">{m}</button>
+                                  <button key={m} type="button" onMouseDown={() => selectModel(m)} className="w-full text-left px-3 py-2 text-gray-900 dark:text-white text-sm hover:bg-laranja-600/30 transition-colors">{m}</button>
                                 ))}
                               </div>
                             )}
                           </div>
-                          <input placeholder="Placa (XXX-0000)" value={vehForm.placa} onChange={(e) => setVehForm({ ...vehForm, placa: formatPlate(e.target.value) })} onBlur={() => { if (vehForm.placa && checkPlateDuplicate(vehForm.placa)) setVehError('Placa já cadastrada'); else setVehError(''); }} className="bg-grafite-800 border border-grafite-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-laranja-500 uppercase" />
-                          <input placeholder={`Ano (1900-${CURRENT_YEAR})`} value={vehForm.ano} onChange={(e) => setVehForm({ ...vehForm, ano: e.target.value.replace(/\D/g, '').slice(0, 4) })} onBlur={() => { const a = parseInt(vehForm.ano); if (vehForm.ano.length === 4 && (a < 1900 || a > CURRENT_YEAR)) setVehError(`Ano inválido (1900-${CURRENT_YEAR})`); else setVehError(''); }} className="bg-grafite-800 border border-grafite-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-laranja-500" />
-                          <input placeholder="Cor" value={vehForm.cor} onChange={(e) => setVehForm({ ...vehForm, cor: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '') })} onBlur={() => { if (vehForm.cor) setVehForm({ ...vehForm, cor: vehForm.cor.charAt(0).toUpperCase() + vehForm.cor.slice(1) }); }} className="bg-grafite-800 border border-grafite-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-laranja-500" />
+                          <input placeholder="Placa (XXX-0000)" value={vehForm.placa} onChange={(e) => setVehForm({ ...vehForm, placa: formatPlate(e.target.value) })} onBlur={() => { if (vehForm.placa && checkPlateDuplicate(vehForm.placa)) setVehError('Placa já cadastrada'); else setVehError(''); }} className="bg-white dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500 uppercase" />
+                          <input placeholder={`Ano (1900-${CURRENT_YEAR})`} value={vehForm.ano} onChange={(e) => setVehForm({ ...vehForm, ano: e.target.value.replace(/\D/g, '').slice(0, 4) })} onBlur={() => { const a = parseInt(vehForm.ano); if (vehForm.ano.length === 4 && (a < 1900 || a > CURRENT_YEAR)) setVehError(`Ano inválido (1900-${CURRENT_YEAR})`); else setVehError(''); }} className="bg-white dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
+                          <input placeholder="Cor" value={vehForm.cor} onChange={(e) => setVehForm({ ...vehForm, cor: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '') })} onBlur={() => { if (vehForm.cor) setVehForm({ ...vehForm, cor: vehForm.cor.charAt(0).toUpperCase() + vehForm.cor.slice(1) }); }} className="bg-white dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
                         </div>
                         {vehError && <p className="text-red-400 text-xs flex items-center gap-1"><AlertCircle size={12} />{vehError}</p>}
                         <button onClick={() => addVehicle(cli.id)} disabled={!vehForm.marca || !vehForm.modelo || !vehForm.placa || !vehForm.ano || !vehForm.cor} className="w-full bg-laranja-600 text-white py-2.5 rounded-lg text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed">{editingVehId ? 'Salvar Veículo' : 'Adicionar Veículo'}</button>
@@ -496,24 +496,24 @@ export default function Clients() {
                     )}
 
                     {(!cli.vehicles || cli.vehicles.length === 0) && addVehFor !== cli.id && (
-                      <p className="text-gray-500 text-xs text-center py-3">Nenhum veículo cadastrado</p>
+                      <p className="text-gray-500 dark:text-gray-400 text-xs text-center py-3">Nenhum veículo cadastrado</p>
                     )}
                     <div className="space-y-2">
                       {cli.vehicles?.map((v) => (
-                        <div key={v.id} className="bg-grafite-800/50 border border-grafite-700 rounded-lg p-3 flex items-center justify-between">
+                        <div key={v.id} className="bg-gray-50 dark:bg-grafite-800/50 border border-gray-200 dark:border-grafite-700 rounded-lg p-3 flex items-center justify-between">
                           <div className="flex-1 min-w-0">
-                            <p className="text-white text-sm font-medium truncate">{v.marca} {v.modelo}</p>
-                            <p className="text-xs text-gray-400 truncate">
+                            <p className="text-gray-900 dark:text-white text-sm font-medium truncate">{v.marca} {v.modelo}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                               {v.placa && <span className="uppercase font-mono">Placa: {v.placa}</span>}
                               {v.ano && <span> - Ano: {v.ano}</span>}
                               {v.cor && <span> - Cor: {v.cor.charAt(0).toUpperCase() + v.cor.slice(1)}</span>}
                             </p>
                           </div>
                           <div className="flex items-center gap-1">
-                            <button onClick={() => startEditVehicle(v, cli.id)} className="text-gray-500 hover:text-laranja-400 p-1.5 transition-colors">
+                            <button onClick={() => startEditVehicle(v, cli.id)} className="text-gray-400 dark:text-gray-500 hover:text-laranja-400 p-1.5 transition-colors">
                               <Pencil size={14} />
                             </button>
-                            <button onClick={() => removeVehicle(cli.id, v.id)} className="text-gray-500 hover:text-red-400 p-1.5 transition-colors">
+                            <button onClick={() => removeVehicle(cli.id, v.id)} className="text-gray-400 dark:text-gray-500 hover:text-red-400 p-1.5 transition-colors">
                               <Trash2 size={14} />
                             </button>
                           </div>

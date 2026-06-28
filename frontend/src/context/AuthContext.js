@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../api';
+import { isAdmin, isDev } from '../utils/permissions';
 
 const AuthContext = createContext();
 
@@ -48,8 +49,16 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const canAccess = (permission) => {
+    if (!user) return false;
+    if (isAdmin(user)) return true;
+    if (isDev(user)) return false;
+    if (!user.permissoes) return true;
+    return user.permissoes.split(',').includes(permission);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading, canAccess }}>
       {children}
     </AuthContext.Provider>
   );

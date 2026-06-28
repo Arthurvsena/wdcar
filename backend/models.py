@@ -1,9 +1,16 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean, Enum as SAEnum
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean, Enum as SAEnum, text
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 import enum
 
-from database import Base
+from database import Base, engine
+
+
+class Role(str, enum.Enum):
+    MASTER = "master"
+    ADMIN = "admin"
+    USER = "user"
+    DEV = "dev"
 
 
 class OSStatus(str, enum.Enum):
@@ -33,6 +40,9 @@ class User(Base):
     email = Column(String, nullable=True)
     avatar = Column(String, nullable=True)
     permissoes = Column(String, nullable=True)
+    is_master = Column(Boolean, default=False, nullable=False)
+    role = Column(String(20), default="user", nullable=False)
+    is_dev = Column(Boolean, default=False, nullable=False)
 
 
 class Cliente(Base):
@@ -142,3 +152,22 @@ class Transaction(Base):
     valor = Column(Float, default=0.0)
     referencia_id = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+def run_migrations():
+    with engine.connect() as conn:
+        conn.execute(text("PRAGMA foreign_keys=OFF"))
+        conn.execute(text("PRAGMA legacy_alter_table=ON"))
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN is_master BOOLEAN DEFAULT 0 NOT NULL"))
+        except Exception:
+            pass
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'user' NOT NULL"))
+        except Exception:
+            pass
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN is_dev BOOLEAN DEFAULT 0 NOT NULL"))
+        except Exception:
+            pass
+        conn.commit()

@@ -102,8 +102,8 @@ export default function ServiceOrders() {
     <div className="space-y-4 pb-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-white">Ordens de Serviço</h1>
-          <p className="text-gray-400 text-xs md:text-sm">Gerencie as OS e orçamentos</p>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Ordens de Serviço</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm">Gerencie as OS e orçamentos</p>
         </div>
         <button onClick={() => { setShowForm(true); }} className="flex items-center gap-2 bg-laranja-600 hover:bg-laranja-700 text-white px-4 py-2.5 md:py-2 rounded-xl md:rounded-lg text-sm font-medium active:scale-95 transition-all shadow-lg shadow-laranja-600/20">
           <Plus size={18} /> <span className="hidden md:inline">Nova OS</span>
@@ -113,23 +113,23 @@ export default function ServiceOrders() {
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input placeholder="Buscar por cliente, placa..." value={search}           onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="w-full bg-grafite-900 border border-grafite-800 rounded-xl pl-9 pr-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" />
+          <input placeholder="Buscar por cliente, placa..." value={search}           onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="w-full bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl pl-9 pr-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-grafite-900 rounded-xl p-1 border border-grafite-800 overflow-x-auto">
+      <div className="flex gap-1 bg-white dark:bg-grafite-900 rounded-xl p-1 border border-gray-200 dark:border-grafite-800 overflow-x-auto">
         {TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => { setActiveTab(tab.key); setPage(1); }}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-              activeTab === tab.key ? 'bg-laranja-600 text-white shadow-lg shadow-laranja-600/20' : 'text-gray-400 hover:text-white'
+              activeTab === tab.key ? 'bg-laranja-600 text-white shadow-lg shadow-laranja-600/20' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
             {tab.label}
             <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-              activeTab === tab.key ? 'bg-white/20' : 'bg-grafite-800'
+              activeTab === tab.key ? 'bg-white/20' : 'bg-gray-200 dark:bg-grafite-800'
             }`}>
               {countByStatus(tab.statuses)}
             </span>
@@ -142,31 +142,31 @@ export default function ServiceOrders() {
       )}
 
       {loading ? (
-        <div className="bg-grafite-900 border border-grafite-800 rounded-xl p-8 text-center text-gray-400 text-sm">Carregando...</div>
+        <div className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-8 text-center text-gray-500 dark:text-gray-400 text-sm">Carregando...</div>
       ) : (
         <>
           {showForm && (
-            <form onSubmit={create} className="bg-grafite-900 border border-grafite-800 rounded-xl p-4 md:p-5 space-y-3">
+            <form onSubmit={create} className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-4 md:p-5 space-y-3">
               <div className="space-y-3">
-                <select value={form.cliente_id} onChange={(e) => onClientSelect(e.target.value)} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" required>
+                <select value={form.cliente_id} onChange={(e) => onClientSelect(e.target.value)} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" required>
                   <option value="">Selecione o cliente</option>
                   {clients.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
                 </select>
-                <select value={form.vehicle_id} onChange={(e) => setForm({ ...form, vehicle_id: e.target.value })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" required disabled={vehicles.length === 0}>
+                <select value={form.vehicle_id} onChange={(e) => setForm({ ...form, vehicle_id: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" required disabled={vehicles.length === 0}>
                   <option value="">Selecione o veículo</option>
                   {vehicles.map((v) => <option key={v.id} value={v.id}>{v.marca} {v.modelo} {v.placa ? `(${v.placa})` : ''}</option>)}
                 </select>
-                <input placeholder="Observações (opcional)" value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" />
+                <input placeholder="Observações (opcional)" value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
               </div>
               <div className="flex gap-2 pt-1">
                 <button type="submit" className="flex-1 bg-laranja-600 hover:bg-laranja-700 text-white py-3 rounded-lg text-sm font-medium">Criar OS</button>
-                <button type="button" onClick={() => setShowForm(false)} className="flex-1 bg-grafite-700 hover:bg-grafite-600 text-gray-300 py-3 rounded-lg text-sm">Cancelar</button>
+                <button type="button" onClick={() => setShowForm(false)} className="flex-1 bg-gray-200 dark:bg-grafite-700 hover:bg-gray-300 dark:hover:bg-grafite-600 text-gray-700 dark:text-gray-300 py-3 rounded-lg text-sm">Cancelar</button>
               </div>
             </form>
           )}
           <div className="space-y-2">
             {filtered.length === 0 && (
-              <div className="bg-grafite-900 border border-grafite-800 rounded-xl p-8 text-center text-gray-500 text-sm">
+              <div className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-8 text-center text-gray-500 dark:text-gray-400 text-sm">
                 {search ? 'Nenhuma OS encontrada' : 'Nenhuma OS nesta categoria'}
               </div>
             )}
@@ -177,15 +177,15 @@ export default function ServiceOrders() {
                 <Link
                   key={o.id}
                   to={`/os/${o.id}`}
-                  className="block bg-grafite-900 border border-grafite-800 rounded-xl p-4 active:bg-grafite-800/50 active:scale-[0.99] transition-all"
+                  className="block bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-4 active:bg-gray-100 dark:active:bg-grafite-800/50 active:scale-[0.99] transition-all"
                 >
                   <div className="flex items-start gap-3">
                     <div className={`w-10 h-10 ${prio?.bg || 'bg-laranja-500/10'} rounded-xl flex items-center justify-center flex-shrink-0`}>
-                      {prio?.icon ? <prio.icon size={18} className={`${prio.dot.replace('bg-', 'text-')}`} /> : <FileText size={18} className="text-laranja-400" />}
+                      {prio?.icon ? <prio.icon size={18} className={`${prio.dot.replace('bg-', 'text-')}`} /> : <FileText size={18} className="text-laranja-600 dark:text-laranja-400" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-mono text-gray-500">#{o.id}</span>
+                        <span className="text-xs font-mono text-gray-500 dark:text-gray-400">#{o.id}</span>
                         <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] ${st.bg}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
                           {st.label}
@@ -202,14 +202,14 @@ export default function ServiceOrders() {
                           </span>
                         )}
                       </div>
-                      <p className="text-white text-sm font-medium mt-1 truncate">{o.cliente?.nome}</p>
-                      <p className="text-xs text-gray-400 truncate">
+                      <p className="text-gray-900 dark:text-white text-sm font-medium mt-1 truncate">{o.cliente?.nome}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                         {o.vehicle ? `${o.vehicle.marca} ${o.vehicle.modelo}` : '-'}
                         {o.vehicle?.placa && <span className="uppercase ml-1">• {o.vehicle.placa}</span>}
                       </p>
                       <div className="flex items-center justify-between mt-2">
-                        <span className="text-sm font-bold text-laranja-400">R$ {(o.valor_total ?? 0).toFixed(2)}</span>
-                        <ChevronRight size={16} className="text-gray-600" />
+                        <span className="text-sm font-bold text-laranja-600 dark:text-laranja-400">R$ {(o.valor_total ?? 0).toFixed(2)}</span>
+                        <ChevronRight size={16} className="text-gray-400 dark:text-gray-600" />
                       </div>
                     </div>
                   </div>

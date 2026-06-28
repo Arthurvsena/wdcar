@@ -1,6 +1,14 @@
 from pydantic import BaseModel, model_validator
 from typing import Optional
 from datetime import datetime
+from enum import Enum
+
+
+class RoleEnum(str, Enum):
+    MASTER = "master"
+    ADMIN = "admin"
+    USER = "user"
+    DEV = "dev"
 
 
 class UserCreate(BaseModel):
@@ -17,6 +25,9 @@ class UserOut(BaseModel):
     email: Optional[str] = None
     avatar: Optional[str] = None
     permissoes: Optional[str] = None
+    is_master: bool = False
+    role: RoleEnum = RoleEnum.USER
+    is_dev: bool = False
     class Config:
         from_attributes = True
 
@@ -25,6 +36,9 @@ class UserUpdate(BaseModel):
     username: Optional[str] = None
     nome_oficina: Optional[str] = None
     email: Optional[str] = None
+    role: Optional[RoleEnum] = None
+    is_master: Optional[bool] = None
+    is_dev: Optional[bool] = None
 
 
 class UserPasswordChange(BaseModel):
@@ -37,6 +51,8 @@ class UserCreateByAdmin(BaseModel):
     password: str
     email: Optional[str] = None
     permissoes: Optional[str] = None
+    role: Optional[RoleEnum] = None
+    is_dev: Optional[bool] = None
 
 
 class Token(BaseModel):

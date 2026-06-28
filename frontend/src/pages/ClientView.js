@@ -40,19 +40,19 @@ export default function ClientView() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-grafite-950 flex items-center justify-center">
-        <div className="text-laranja-400 text-sm">Carregando...</div>
+      <div className="min-h-screen bg-gray-50 dark:bg-grafite-950 flex items-center justify-center">
+        <div className="text-laranja-600 dark:text-laranja-400 text-sm">Carregando...</div>
       </div>
     );
   }
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-grafite-950 flex items-center justify-center p-5">
-        <div className="bg-grafite-900 border border-grafite-800 rounded-2xl p-8 text-center max-w-sm w-full">
+      <div className="min-h-screen bg-gray-50 dark:bg-grafite-950 flex items-center justify-center p-5">
+        <div className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-2xl p-8 text-center max-w-sm w-full">
           <XCircle size={48} className="text-red-400 mx-auto mb-4" />
-          <h2 className="text-lg text-white font-semibold">Orçamento não encontrado</h2>
-          <p className="text-gray-400 text-sm mt-2">O link pode estar expirado ou inválido.</p>
+          <h2 className="text-lg text-gray-900 dark:text-white font-semibold">Orçamento não encontrado</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">O link pode estar expirado ou inválido.</p>
         </div>
       </div>
     );
@@ -61,18 +61,18 @@ export default function ClientView() {
   const alreadyAnswered = order.orcamento_status !== 'pendente';
 
   return (
-    <div className="min-h-screen bg-grafite-950">
+    <div className="min-h-screen bg-gray-50 dark:bg-grafite-950">
       <div className="max-w-lg mx-auto p-4 py-8">
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-laranja-600 rounded-2xl mb-3 shadow-lg shadow-laranja-600/30">
             <Wrench size={28} className="text-white" />
           </div>
-          <h1 className="text-xl font-bold text-white">Orçamento #{order.id}</h1>
-          <p className="text-sm text-gray-400 mt-1">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Orçamento #{order.id}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {order.cliente?.nome}
           </p>
           {order.vehicle && (
-            <p className="text-xs text-gray-500">{order.vehicle.marca} {order.vehicle.modelo}{order.vehicle.placa ? ` • ${order.vehicle.placa}` : ''}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">{order.vehicle.marca} {order.vehicle.modelo}{order.vehicle.placa ? ` • ${order.vehicle.placa}` : ''}</p>
           )}
         </div>
 
@@ -80,25 +80,25 @@ export default function ClientView() {
           <div className={`mb-4 px-4 py-3 rounded-xl text-sm text-center ${
             order.orcamento_status === 'aprovado' ? 'bg-green-500/10 text-green-400 border border-green-500/30' :
             order.orcamento_status === 'reprovado' ? 'bg-red-500/10 text-red-400 border border-red-500/30' :
-            'bg-laranja-600/10 text-laranja-400 border border-laranja-600/30'
+            'bg-laranja-600/10 text-laranja-600 dark:text-laranja-400 border border-laranja-600/30'
           }`}>
             {actionMsg}
           </div>
         )}
 
-        <div className="bg-grafite-900 border border-grafite-800 rounded-2xl p-5 space-y-4">
-          <h2 className="text-white font-semibold">Itens do Orçamento</h2>
+        <div className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-2xl p-5 space-y-4">
+          <h2 className="text-gray-900 dark:text-white font-semibold">Itens do Orçamento</h2>
 
           {order.parts_used.length > 0 && (
             <div>
-              <h3 className="text-xs font-medium text-gray-400 mb-2 flex items-center gap-1.5">
+              <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
                 <Package2 size={12} /> Peças
               </h3>
               <div className="space-y-2">
                 {order.parts_used.map((p) => (
-                  <div key={p.id} className="flex justify-between bg-grafite-800/50 rounded-xl p-3">
-                    <span className="text-sm text-white">{p.part_nome} x{p.quantidade ?? 0}</span>
-                    <span className="text-sm font-medium text-laranja-400">R$ {((p.quantidade ?? 0) * (p.preco_unitario ?? 0)).toFixed(2)}</span>
+                  <div key={p.id} className="flex justify-between bg-gray-50 dark:bg-grafite-800/50 rounded-xl p-3">
+                    <span className="text-sm text-gray-900 dark:text-white">{p.part_nome} x{p.quantidade ?? 0}</span>
+                    <span className="text-sm font-medium text-laranja-600 dark:text-laranja-400">R$ {((p.quantidade ?? 0) * (p.preco_unitario ?? 0)).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
@@ -107,14 +107,14 @@ export default function ClientView() {
 
           {order.services_used.length > 0 && (
             <div>
-              <h3 className="text-xs font-medium text-gray-400 mb-2 flex items-center gap-1.5">
+              <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
                 <WrenchIcon size={12} /> Serviços
               </h3>
               <div className="space-y-2">
                 {order.services_used.map((s) => (
-                  <div key={s.id} className="flex justify-between bg-grafite-800/50 rounded-xl p-3">
-                    <span className="text-sm text-white">{s.service_nome}</span>
-                    <span className="text-sm font-medium text-laranja-400">R$ {(s.valor_cobrado ?? 0).toFixed(2)}</span>
+                  <div key={s.id} className="flex justify-between bg-gray-50 dark:bg-grafite-800/50 rounded-xl p-3">
+                    <span className="text-sm text-gray-900 dark:text-white">{s.service_nome}</span>
+                    <span className="text-sm font-medium text-laranja-600 dark:text-laranja-400">R$ {(s.valor_cobrado ?? 0).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
@@ -122,13 +122,13 @@ export default function ClientView() {
           )}
 
           {order.parts_used.length === 0 && order.services_used.length === 0 && (
-            <p className="text-gray-500 text-sm text-center py-4">Nenhum item adicionado ao orçamento ainda.</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm text-center py-4">Nenhum item adicionado ao orçamento ainda.</p>
           )}
 
-          <div className="border-t border-grafite-800 pt-4 mt-4">
+          <div className="border-t border-gray-200 dark:border-grafite-800 pt-4 mt-4">
             <div className="flex justify-between items-center">
-              <span className="text-base text-white font-semibold">Valor Total</span>
-              <span className="text-xl font-bold text-laranja-400">R$ {(order.valor_total ?? 0).toFixed(2)}</span>
+              <span className="text-base text-gray-900 dark:text-white font-semibold">Valor Total</span>
+              <span className="text-xl font-bold text-laranja-600 dark:text-laranja-400">R$ {(order.valor_total ?? 0).toFixed(2)}</span>
             </div>
           </div>
         </div>

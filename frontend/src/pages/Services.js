@@ -81,8 +81,8 @@ export default function Services() {
     <div className="space-y-4 pb-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-white">Serviços</h1>
-          <p className="text-gray-400 text-xs md:text-sm">Catálogo de serviços e mão de obra</p>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Serviços</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm">Catálogo de serviços e mão de obra</p>
         </div>
         <button onClick={openNew} className="flex items-center gap-2 bg-laranja-600 hover:bg-laranja-700 text-white px-4 py-2.5 md:py-2 rounded-xl md:rounded-lg text-sm font-medium active:scale-95 transition-all shadow-lg shadow-laranja-600/20">
           <Plus size={18} /> <span className="hidden md:inline">Novo</span>
@@ -95,7 +95,7 @@ export default function Services() {
           placeholder="Buscar serviços..."
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="w-full bg-grafite-900 border border-grafite-800 rounded-xl pl-9 pr-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500"
+          className="w-full bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl pl-9 pr-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500"
         />
       </div>
 
@@ -104,41 +104,41 @@ export default function Services() {
       )}
 
       {loading ? (
-        <div className="bg-grafite-900 border border-grafite-800 rounded-xl p-8 text-center text-gray-400 text-sm">Carregando...</div>
+        <div className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-8 text-center text-gray-500 dark:text-gray-400 text-sm">Carregando...</div>
       ) : (
         <>
           {showForm && (
-            <form onSubmit={save} className="bg-grafite-900 border border-grafite-800 rounded-xl p-4 md:p-5 space-y-3">
+            <form onSubmit={save} className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-4 md:p-5 space-y-3">
               <div className="space-y-3">
-                <input placeholder="Nome do serviço" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" required />
-                <input placeholder="Descrição" value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" />
-                <input placeholder="Valor mão de obra (R$)" type="number" step="0.01" value={form.valor_mao_obra} onChange={(e) => setForm({ ...form, valor_mao_obra: e.target.value })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" />
+                <input placeholder="Nome do serviço" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" required />
+                <input placeholder="Descrição" value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
+                <input placeholder="Valor mão de obra (R$)" type="number" step="0.01" value={form.valor_mao_obra} onChange={(e) => setForm({ ...form, valor_mao_obra: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
               </div>
               <div className="flex gap-2 pt-1">
                 <button type="submit" className="flex-1 bg-laranja-600 hover:bg-laranja-700 text-white py-3 rounded-lg text-sm font-medium">{edit ? 'Atualizar' : 'Salvar'}</button>
-                <button type="button" onClick={() => setShowForm(false)} className="flex-1 bg-grafite-700 hover:bg-grafite-600 text-gray-300 py-3 rounded-lg text-sm">Cancelar</button>
+                <button type="button" onClick={() => setShowForm(false)} className="flex-1 bg-gray-200 dark:bg-grafite-700 hover:bg-gray-300 dark:hover:bg-grafite-600 text-gray-700 dark:text-gray-300 py-3 rounded-lg text-sm">Cancelar</button>
               </div>
             </form>
           )}
           <div className="space-y-2">
             {displayList.length === 0 ? (
-              <div className="bg-grafite-900 border border-grafite-800 rounded-xl p-8 text-center text-gray-500 text-sm">
+              <div className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-8 text-center text-gray-500 dark:text-gray-400 text-sm">
                 {search ? 'Nenhum serviço encontrado' : 'Nenhum serviço cadastrado'}
               </div>
             ) : (
               displayList.map((s) => (
-                <div key={s.id} className="bg-grafite-900 border border-grafite-800 rounded-xl p-4 flex items-center gap-3 active:bg-grafite-800/30 transition-colors">
+                <div key={s.id} className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-4 flex items-center gap-3 active:bg-gray-100 dark:active:bg-grafite-800/30 transition-colors">
                   <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
                     <span className="text-blue-400 text-lg font-bold">{s.nome.charAt(0)}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium truncate">{s.nome}</p>
-                    <p className="text-xs text-gray-400 truncate">{s.descricao || 'Sem descrição'}</p>
-                    <p className="text-xs font-medium text-laranja-400 mt-0.5">R$ {(s.valor_mao_obra ?? 0).toFixed(2)}</p>
+                    <p className="text-gray-900 dark:text-white text-sm font-medium truncate">{s.nome}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{s.descricao || 'Sem descrição'}</p>
+                    <p className="text-xs font-medium text-laranja-600 dark:text-laranja-400 mt-0.5">R$ {(s.valor_mao_obra ?? 0).toFixed(2)}</p>
                   </div>
                   <div className="flex gap-1">
-                    <button onClick={() => openEdit(s)} className="text-gray-500 hover:text-laranja-400 p-1.5"><Edit3 size={14} /></button>
-                    <button onClick={() => remove(s.id)} className="text-gray-500 hover:text-red-400 p-1.5"><Trash2 size={14} /></button>
+                    <button onClick={() => openEdit(s)} className="text-gray-400 dark:text-gray-500 hover:text-laranja-400 p-1.5"><Edit3 size={14} /></button>
+                    <button onClick={() => remove(s.id)} className="text-gray-400 dark:text-gray-500 hover:text-red-400 p-1.5"><Trash2 size={14} /></button>
                   </div>
                 </div>
               ))

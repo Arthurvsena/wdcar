@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import './styles/index.css';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/service-worker.js').catch(() => {});
@@ -14,7 +15,9 @@ root.render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <App />
+        <ThemeProvider>
+          <App />
+        </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>

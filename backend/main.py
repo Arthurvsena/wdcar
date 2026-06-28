@@ -2,8 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from database import engine, Base
+from models import run_migrations
 from routers import auth, clients, parts, services, orders, finance, dashboard
 
+run_migrations()
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="WDOcar - Gestão de Oficina Mecânica")
