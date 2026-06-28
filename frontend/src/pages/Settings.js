@@ -5,6 +5,17 @@ import { useAuth } from '../context/AuthContext';
 import { User, Shield, Plus, Trash2, Pencil, Check, X } from 'lucide-react';
 import { isAdmin, ROLES } from '../utils/permissions';
 
+const getErrorMessage = (err) => {
+  const detail = err.response?.data?.detail;
+  if (!detail) return 'Erro ao salvar usuário';
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail.map(e => e.msg).filter(Boolean).join(', ');
+  }
+  if (typeof detail === 'object' && detail.msg) return detail.msg;
+  return 'Erro ao salvar usuário';
+};
+
 const ROLE_COLORS = {
   master: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
   admin: 'bg-laranja-500/20 text-laranja-400 border-laranja-500/30',
@@ -77,7 +88,7 @@ export default function Settings() {
       loadUsers();
       showMsg(editingUserId ? 'Usuário atualizado!' : 'Usuário criado!', 'success');
     } catch (err) {
-      showMsg(err.response?.data?.detail || 'Erro ao salvar usuário', 'error');
+      showMsg(getErrorMessage(err), 'error');
     } finally {
       setSaving(false);
     }
@@ -90,7 +101,7 @@ export default function Settings() {
       loadUsers();
       showMsg('Usuário removido', 'success');
     } catch (err) {
-      showMsg(err.response?.data?.detail || 'Erro ao remover', 'error');
+      showMsg(getErrorMessage(err), 'error');
     }
   };
 
@@ -100,7 +111,7 @@ export default function Settings() {
       loadUsers();
       showMsg('Usuário promovido a Admin!', 'success');
     } catch (err) {
-      showMsg(err.response?.data?.detail || 'Erro ao promover', 'error');
+      showMsg(getErrorMessage(err), 'error');
     }
   };
 

@@ -120,6 +120,8 @@ def list_users(user: User = Depends(require_master_or_admin), db: Session = Depe
 def create_user(payload: UserCreateByAdmin, user: User = Depends(require_master_or_admin), db: Session = Depends(get_db)):
     if payload.is_dev and not user.is_master:
         raise HTTPException(status_code=403, detail="Only master can create dev users")
+    if not payload.username or not payload.password:
+        raise HTTPException(status_code=400, detail="Username and password are required")
     existing = db.query(User).filter(User.username == payload.username).first()
     if existing:
         raise HTTPException(status_code=400, detail="Username already exists")

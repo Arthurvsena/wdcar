@@ -47,8 +47,8 @@ class UserPasswordChange(BaseModel):
 
 
 class UserCreateByAdmin(BaseModel):
-    username: str
-    password: str
+    username: Optional[str] = None
+    password: Optional[str] = None
     email: Optional[str] = None
     permissoes: Optional[str] = None
     role: Optional[RoleEnum] = None
