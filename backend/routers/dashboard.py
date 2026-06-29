@@ -1,12 +1,102 @@
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone, date, timedelta
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, cast, Date
 from database import get_db
-from models import User, Cliente, Vehicle, ServiceOrder, OrderPart, OrderService, Part, Service, OSStatus
+from models import User, Cliente, Vehicle, ServiceOrder, OrderPart, OrderService, Part, Service, OSStatus, Transaction
 from auth import get_current_user
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+
+
+@router.get("/health")
+def health_check(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    ofid = user.oficina_id
+    now = datetime.now(timezone.utc)
+
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    faturamento_hoje = db.query(func.sum(ServiceOrder.valor_total)).filter(
+        ServiceOrder.oficina_id == ofid,
+        ServiceOrder.status == OSStatus.FINALIZADA.value,
+        ServiceOrder.updated_at >= today_start,
+    ).scalar() or 0
+
+    faturamento_mes = db.query(func.sum(ServiceOrder.valor_total)).filter(
+        ServiceOrder.oficina_id == ofid,
+        ServiceOrder.status == OSStatus.FINALIZADA.value,
+        ServiceOrder.updated_at >= month_start,
+    ).scalar() or 0
+
+    total_in = db.query(func.sum(Transaction.valor)).filter(
+        Transaction.oficina_id == ofid, Transaction.tipo == "entrada"
+    ).scalar() or 0
+    total_out = db.query(func.sum(Transaction.valor)).filter(
+        Transaction.oficina_id == ofid, Transaction.tipo == "saida"
+    ).scalar() or 0
+
+    total_pecas = db.query(func.sum(Part.quantidade)).filter(
+        Part.oficina_id == ofid
+    ).scalar() or 0
+    low_stock = db.query(Part).filter(
+        Part.oficina_id == ofid,
+        Part.estoque_minimo.isnot(None),
+        Part.quantidade <= Part.estoque_minimo,
+    ).count()
+
+    os_abertas = db.query(ServiceOrder).filter(
+        ServiceOrder.oficina_id == ofid,
+        ServiceOrder.status.in_([
+            OSStatus.ABERTA.value, OSStatus.EM_ANDAMENTO.value,
+            OSStatus.AGUARDANDO_PECA.value, OSStatus.AGUARDANDO_PAGAMENTO.value,
+            OSStatus.AGUARDANDO_APROVACAO.value, OSStatus.ORCAMENTO_RECUSADO.value,
+        ]),
+    ).count()
+
+    os_finalizadas = db.query(ServiceOrder).filter(
+        ServiceOrder.oficina_id == ofid,
+        ServiceOrder.status == OSStatus.FINALIZADA.value,
+    ).count()
+
+    score_financeiro = _safe_score(
+        10,
+        faturamento_mes / max(total_out + total_in, 1) * 100 if (total_out + total_in) > 0 else 0,
+    )
+    score_oficina = _safe_score(
+        10,
+        (os_finalizadas / max(os_abertas + os_finalizadas, 1)) * 100,
+    )
+    score_estoque = _safe_score(
+        10,
+        max(0, 100 - (low_stock / max(total_pecas, 1)) * 100),
+    )
+
+    return {
+        "financeiro": {
+            "score": score_financeiro,
+            "faturamento_hoje": faturamento_hoje,
+            "faturamento_mes": faturamento_mes,
+            "total_entradas": total_in,
+            "total_saidas": total_out,
+            "saldo": total_in - total_out,
+        },
+        "oficina": {
+            "score": score_oficina,
+            "os_abertas": os_abertas,
+            "os_finalizadas": os_finalizadas,
+            "total_os": os_abertas + os_finalizadas,
+        },
+        "estoque": {
+            "score": score_estoque,
+            "total_pecas": total_pecas,
+            "pecas_baixo_estoque": low_stock,
+        },
+    }
+
+
+def _safe_score(max_score: int, percentage: float) -> float:
+    return round(max(max_score * percentage / 100, 0), 1)
 
 
 @router.get("/metrics")

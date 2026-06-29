@@ -17,6 +17,8 @@ export default function ServiceOrderDetail() {
   const [showAddPart, setShowAddPart] = useState(false);
   const [showAddService, setShowAddService] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [whatsAppMessage, setWhatsAppMessage] = useState('');
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -110,6 +112,16 @@ export default function ServiceOrderDetail() {
     const link = `${window.location.origin}/orcamento/${order.orcamento_token}`;
     const message = `Olá! Segue o orçamento da sua OS #${order.id}: ${link}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
+  const notifyCarReady = async () => {
+    try {
+      const { data } = await api.post(`/orders/${id}/notify-ready`);
+      setWhatsAppMessage(data.message || `Olá ${order.cliente?.nome}, seu ${order.vehicle?.marca} ${order.vehicle?.modelo} está pronto! Aguardamos você.`);
+      setShowWhatsAppModal(true);
+    } catch (err) {
+      showMsg(err.response?.data?.detail || 'Erro ao gerar mensagem', 'error');
+    }
   };
 
   if (!order) return <div className="flex items-center justify-center min-h-[60vh] text-gray-500 dark:text-gray-400 text-sm">Carregando...</div>;
@@ -318,6 +330,11 @@ export default function ServiceOrderDetail() {
         <button onClick={shareWhatsApp} className="w-full mt-3 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3.5 rounded-xl text-sm font-semibold active:scale-[0.98] transition-all shadow-lg shadow-green-600/30">
           <MessageCircle size={20} /> Enviar Orçamento via WhatsApp
         </button>
+        {(order.status === 'finalizada' || order.status === 'aguardando_aprovacao_orcamento') && (
+          <button onClick={notifyCarReady} className="w-full mt-2 flex items-center justify-center gap-2 bg-laranja-600 hover:bg-laranja-700 text-white py-3.5 rounded-xl text-sm font-semibold active:scale-[0.98] transition-all shadow-lg shadow-laranja-600/30">
+            <MessageCircle size={20} /> Enviar "Carro Pronto"
+          </button>
+        )}
       </div>
 
       {/* Ações */}
@@ -365,6 +382,36 @@ export default function ServiceOrderDetail() {
                 })}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showWhatsAppModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white dark:bg-grafite-900 rounded-xl p-5 w-full max-w-sm shadow-xl">
+            <h3 className="text-gray-900 dark:text-white font-semibold text-lg mb-3">Mensagem para WhatsApp</h3>
+            <textarea
+              readOnly
+              value={whatsAppMessage}
+              className="w-full h-32 bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm resize-none"
+            />
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(whatsAppMessage);
+                  showMsg('Mensagem copiada!', 'success');
+                }}
+                className="flex-1 bg-laranja-600 hover:bg-laranja-700 text-white py-3 rounded-lg text-sm font-medium"
+              >
+                Copiar
+              </button>
+              <button
+                onClick={() => setShowWhatsAppModal(false)}
+                className="flex-1 bg-gray-200 dark:bg-grafite-700 hover:bg-gray-300 dark:hover:bg-grafite-600 text-gray-700 dark:text-gray-300 py-3 rounded-lg text-sm"
+              >
+                Fechar
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -6,6 +6,7 @@ import {
   LayoutDashboard, Users, Package2, Wrench, FileText,
   BarChart3, DollarSign, LogOut, Wrench as LogoIcon,
   Menu, X, ChevronRight, Bell, Settings as SettingsIcon,
+  Activity, Banknote, Truck, ShoppingCart,
 } from 'lucide-react';
 import { isAdmin, isDev, hasPermission, NAV_ITEMS, ADMIN_NAV_ITEMS } from '../utils/permissions';
 
@@ -18,14 +19,18 @@ const iconMap = {
   BarChart3,
   DollarSign,
   Settings: SettingsIcon,
+  Activity,
+  Banknote,
+  Truck,
+  ShoppingCart,
 };
 
 const bottomNav = [
   { label: 'Início', icon: LayoutDashboard, path: '/' },
-  { label: 'Clientes', icon: Users, path: '/clientes' },
+  { label: 'Mecânico', icon: Wrench, path: '/mecanico' },
   { label: 'OS', icon: FileText, path: '/os' },
+  { label: 'Clientes', icon: Users, path: '/clientes' },
   { label: 'Peças', icon: Package2, path: '/pecas' },
-  { label: 'Mais', icon: Menu, path: '/analytics' },
 ];
 
 const getNavItems = (user) => {
@@ -33,6 +38,10 @@ const getNavItems = (user) => {
   if (isDev(user)) return [];
 
   let items = NAV_ITEMS.filter(item => hasPermission(user, item.permission));
+
+  if (user.role === 'mecanico') {
+    items = items.filter(item => item.key !== 'financeiro' && item.key !== 'caixa');
+  }
 
   if (isAdmin(user)) {
     items = [...items, ...ADMIN_NAV_ITEMS];
@@ -55,7 +64,7 @@ export default function Layout({ children }) {
 
   const isActive = (path) => location.pathname === path;
 
-  const navItems = getNavItems(user);
+  const navItems = React.useMemo(() => getNavItems(user), [user]);
 
   if (isDev(user)) {
     return (

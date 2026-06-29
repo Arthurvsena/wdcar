@@ -12,7 +12,7 @@ export default function Parts() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ nome: '', codigo: '', preco_compra: '', preco_venda: '', quantidade: '' });
+  const [form, setForm] = useState({ nome: '', codigo: '', preco_compra: '', preco_venda: '', quantidade: '', estoque_minimo: '0' });
 
   useEffect(() => { load(); }, [page]);
 
@@ -39,13 +39,13 @@ export default function Parts() {
 
   const openNew = () => {
     setEdit(null);
-    setForm({ nome: '', codigo: '', preco_compra: '', preco_venda: '', quantidade: '' });
+    setForm({ nome: '', codigo: '', preco_compra: '', preco_venda: '', quantidade: '', estoque_minimo: '0' });
     setShowForm(true);
   };
 
   const openEdit = (p) => {
     setEdit(p);
-    setForm({ nome: p.nome, codigo: p.codigo || '', preco_compra: String(p.preco_compra), preco_venda: String(p.preco_venda), quantidade: String(p.quantidade) });
+    setForm({ nome: p.nome, codigo: p.codigo || '', preco_compra: String(p.preco_compra), preco_venda: String(p.preco_venda), quantidade: String(p.quantidade), estoque_minimo: String(p.estoque_minimo || 0) });
     setShowForm(true);
   };
 
@@ -53,7 +53,7 @@ export default function Parts() {
     e.preventDefault();
     setError('');
     try {
-      const payload = { ...form, preco_compra: parseFloat(form.preco_compra) || 0, preco_venda: parseFloat(form.preco_venda) || 0, quantidade: parseInt(form.quantidade) || 0 };
+      const payload = { ...form, preco_compra: parseFloat(form.preco_compra) || 0, preco_venda: parseFloat(form.preco_venda) || 0, quantidade: parseInt(form.quantidade) || 0, estoque_minimo: parseInt(form.estoque_minimo) || 0 };
       if (edit) {
         await api.put(`/parts/${edit.id}`, payload);
       } else {
@@ -117,6 +117,7 @@ export default function Parts() {
                   <input placeholder="Preço Venda (R$)" type="number" step="0.01" value={form.preco_venda} onChange={(e) => setForm({ ...form, preco_venda: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
                 </div>
                 <input placeholder="Quantidade em estoque" type="number" value={form.quantidade} onChange={(e) => setForm({ ...form, quantidade: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
+                <input placeholder="Estoque mínimo" type="number" value={form.estoque_minimo} onChange={(e) => setForm({ ...form, estoque_minimo: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
               </div>
               <div className="flex gap-2 pt-1">
                 <button type="submit" className="flex-1 bg-laranja-600 hover:bg-laranja-700 text-white py-3 rounded-lg text-sm font-medium">{edit ? 'Atualizar' : 'Salvar'}</button>
@@ -145,6 +146,9 @@ export default function Parts() {
                     <span className={`text-xs font-bold ${(p.quantidade ?? 0) <= 0 ? 'text-red-400' : (p.quantidade ?? 0) <= 5 ? 'text-laranja-500 dark:text-laranja-400' : 'text-green-400'}`}>
                       {p.quantidade ?? 0} un
                     </span>
+                    {(p.estoque_minimo > 0 && (p.quantidade ?? 0) <= p.estoque_minimo) && (
+                      <span className="text-[10px] text-red-400 font-medium">⚠️ Abaixo do mínimo</span>
+                    )}
                     <div className="flex gap-1">
                       <button onClick={() => openEdit(p)} className="text-gray-400 dark:text-gray-500 hover:text-laranja-400 p-1.5"><Edit3 size={14} /></button>
                       <button onClick={() => remove(p.id)} className="text-gray-400 dark:text-gray-500 hover:text-red-400 p-1.5"><Trash2 size={14} /></button>

@@ -12,7 +12,15 @@ load_dotenv()
 from database import get_db
 from models import User
 
-SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "wdocar-fallback-insecure-key-change-in-production")
+_ENV = os.environ.get("ENV", "development")
+_SECRET_KEY_ENV = os.environ.get("JWT_SECRET_KEY")
+if not _SECRET_KEY_ENV:
+    if _ENV == "production":
+        raise RuntimeError("JWT_SECRET_KEY must be set in production")
+    SECRET_KEY = "wdocar-dev-only-key-not-for-production"
+else:
+    SECRET_KEY = _SECRET_KEY_ENV
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 1
 
@@ -48,7 +56,8 @@ def get_current_user(
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: int = payload.get("user_id")
-        if user_id is None:
+        role: str = payload.get("role")
+        if user_id is None or role is None:
             raise HTTPException(status_code=401, detail="Invalid token")
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")

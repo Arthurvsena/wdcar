@@ -1,7 +1,7 @@
 import secrets
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from database import get_db
 from models import (
     User, ServiceOrder, OrderPart, OrderService,
@@ -18,11 +18,9 @@ router = APIRouter(prefix="/orders", tags=["orders"])
 
 
 def _recalc_total(order: ServiceOrder, db: Session):
-    db.flush()
     total = sum(op.quantidade * op.preco_unitario for op in order.parts_used)
     total += sum(osv.valor_cobrado for osv in order.services_used)
     order.valor_total = total
-    db.commit()
 
 
 def _calc_prioridade(o: ServiceOrder) -> int:
@@ -41,7 +39,17 @@ def _calc_prioridade(o: ServiceOrder) -> int:
 def list_orders(skip: int = 0, limit: int = 50, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     query = db.query(ServiceOrder).filter(ServiceOrder.oficina_id == user.oficina_id)
     total = query.count()
-    orders = query.offset(skip).limit(limit).all()
+    orders = (
+        query
+        .options(
+            joinedload(ServiceOrder.cliente),
+            joinedload(ServiceOrder.vehicle),
+            selectinload(ServiceOrder.parts_used).joinedload(OrderPart.part),
+            selectinload(ServiceOrder.services_used).joinedload(OrderService.service),
+        )
+        .offset(skip).limit(limit)
+        .all()
+    )
     result = []
     for o in orders:
         o.prioridade = _calc_prioridade(o)
@@ -160,7 +168,11 @@ def add_part_to_order(order_id: int, payload: OrderPartCreate, user: User = Depe
     )
     db.add(op)
     _recalc_total(order, db)
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to add part to order")
     db.refresh(op)
     return {"ok": True, "part_id": payload.part_id, "quantidade": payload.quantidade, "remaining_stock": part.quantidade}
 
@@ -180,7 +192,11 @@ def add_service_to_order(order_id: int, payload: OrderServiceCreate, user: User 
     )
     db.add(osv)
     _recalc_total(order, db)
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to add service to order")
     db.refresh(osv)
     return {"ok": True, "service_id": payload.service_id, "valor_cobrado": svc.valor_mao_obra}
 
@@ -198,7 +214,11 @@ def remove_part_from_order(order_id: int, order_part_id: int, user: User = Depen
         part.quantidade += op.quantidade
     db.delete(op)
     _recalc_total(order, db)
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to remove part from order")
     return {"ok": True}
 
 
@@ -212,7 +232,11 @@ def remove_service_from_order(order_id: int, order_service_id: int, user: User =
         raise HTTPException(status_code=404, detail="Order service not found")
     db.delete(osv)
     _recalc_total(order, db)
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to remove service from order")
     return {"ok": True}
 
 
@@ -240,6 +264,14 @@ def update_status(order_id: int, status: str, user: User = Depends(get_current_u
         raise HTTPException(status_code=400, detail=f"Invalid status. Use: {[e.value for e in OSStatus]}")
     old_status = order.status
     order.status = status
+
+    # Registrar mudança de status no histórico
+    history_entry = StatusHistory(
+        order_id=order.id,
+        status=status,
+        user_id=user.id,
+    )
+    db.add(history_entry)
 
     if status == OSStatus.FINALIZADA.value and old_status != OSStatus.FINALIZADA.value:
         t = Transaction(
@@ -283,3 +315,29 @@ def reject_orcamento(token: str, db: Session = Depends(get_db)):
     order.status = OSStatus.CANCELADA.value
     db.commit()
     return {"ok": True, "status": order.orcamento_status}
+
+
+@router.post("/{order_id}/notify-ready")
+def notify_order_ready(order_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    order = db.query(ServiceOrder).filter(
+        ServiceOrder.id == order_id,
+        ServiceOrder.oficina_id == user.oficina_id
+    ).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    cliente = db.query(Cliente).filter(Cliente.id == order.cliente_id).first()
+    vehicle = db.query(Vehicle).filter(Vehicle.id == order.vehicle_id).first()
+    telefone_oficina = user.telefone_oficina or ""
+
+    mensagem_whatsapp = (
+        f"Olá {cliente.nome}, seu {vehicle.marca} {vehicle.modelo} está pronto! "
+        f"Aguardamos você. Qualquer dúvida: {telefone_oficina}"
+    )
+
+    return {
+        "mensagem_whatsapp": mensagem_whatsapp,
+        "cliente_nome": cliente.nome,
+        "veiculo": f"{vehicle.marca} {vehicle.modelo}",
+        "telefone_oficina": telefone_oficina,
+    }

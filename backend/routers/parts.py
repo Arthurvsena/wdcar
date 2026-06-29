@@ -8,6 +8,20 @@ from auth import get_current_user
 router = APIRouter(prefix="/parts", tags=["parts"])
 
 
+@router.get("/low-stock")
+def list_low_stock_parts(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    parts = (
+        db.query(Part)
+        .filter(
+            Part.oficina_id == user.oficina_id,
+            Part.estoque_minimo.isnot(None),
+            Part.quantidade <= Part.estoque_minimo,
+        )
+        .all()
+    )
+    return {"items": parts, "total": len(parts)}
+
+
 @router.get("")
 def list_parts(skip: int = 0, limit: int = 50, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     query = db.query(Part).filter(Part.oficina_id == user.oficina_id)

@@ -17,28 +17,29 @@ export default function Finance() {
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
 
-  useEffect(() => { load(); }, [page, dataInicio, dataFim]);
-
-  const load = async () => {
+  const loadTransactions = async () => {
     setLoading(true);
-    setError('');
     try {
       const params = { skip: (page - 1) * 50, limit: 50 };
       if (dataInicio) params.data_inicio = dataInicio;
       if (dataFim) params.data_fim = dataFim;
-      const [txRes, sumRes] = await Promise.all([
-        api.get('/finance/transactions', { params }),
-        api.get('/finance/summary'),
-      ]);
-      setTransactions(txRes.data ? (Array.isArray(txRes.data) ? txRes.data : (txRes.data.items || [])) : []);
-      setTotal(txRes.data ? (Array.isArray(txRes.data) ? txRes.data.length : (txRes.data.total || 0)) : 0);
-      setSummary(sumRes.data);
+      const { data } = await api.get('/finance/transactions', { params });
+      setTransactions(data?.items || []);
+      setTotal(data?.total || 0);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao carregar dados financeiros');
+      setError(err.response?.data?.detail || 'Erro ao carregar');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadTransactions();
+  }, [page, dataInicio, dataFim]);
+
+  useEffect(() => {
+    api.get('/finance/summary').then(({ data }) => setSummary(data)).catch(() => {});
+  }, []);
 
   const filtered = tab === 'todas' ? transactions : transactions.filter(t => t.tipo === tab);
 
@@ -52,6 +53,7 @@ export default function Finance() {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (err) {
+      setError('Erro ao exportar CSV');
     }
   };
 
@@ -76,7 +78,7 @@ export default function Finance() {
       await api.post('/finance/transactions', payload);
       setShowForm(false);
       setForm({ tipo: 'entrada', descricao: '', valor: '' });
-      load();
+      loadTransactions();
     } catch (err) {
       setError(err.response?.data?.detail || 'Erro ao salvar transação');
     } finally {

@@ -25,7 +25,7 @@ export default function ServiceOrders() {
   const [error, setError] = useState('');
   const [form, setForm] = useState({ cliente_id: '', vehicle_id: '', observacoes: '' });
 
-  useEffect(() => { load(); }, [page]);
+  useEffect(() => { load(); }, [page, activeTab]);
 
   useEffect(() => {
     const tab = TABS.find((t) => t.key === activeTab);
@@ -42,6 +42,12 @@ export default function ServiceOrders() {
     setFiltered(result);
   }, [search, activeTab, orders]);
 
+  useEffect(() => {
+    if (showForm) {
+      api.get('/clients?skip=0&limit=999').then(({ data }) => setClients(data.items || []));
+    }
+  }, [showForm]);
+
   const load = async () => {
     setLoading(true);
     setError('');
@@ -49,8 +55,6 @@ export default function ServiceOrders() {
       const { data } = await api.get(`/orders?skip=${(page - 1) * 20}&limit=20`);
       setOrders(data ? (Array.isArray(data) ? data : (data.orders || [])) : []);
       setTotal(data ? (Array.isArray(data) ? data.length : (data.total || 0)) : 0);
-      const { data: cli } = await api.get('/clients?skip=0&limit=999');
-      setClients(cli.items || []);
     } catch (err) {
       setError(err.response?.data?.detail || 'Erro ao carregar OS');
     } finally {

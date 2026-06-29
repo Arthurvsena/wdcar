@@ -27,3 +27,15 @@ def require_master_or_admin(user: User = Depends(get_current_user)) -> User:
     if not user.is_master and user.role not in ["master", "admin"]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     return user
+
+
+def require_mecanico(user: User = Depends(get_current_user)) -> User:
+    if user.role not in ["master", "admin", "mecanico"]:
+        raise HTTPException(status_code=403, detail="Acesso restrito a mecânicos, admins e masters")
+    return user
+
+
+def require_cash(user: User = Depends(get_current_user)) -> User:
+    if user.role not in ["master", "admin"]:
+        raise HTTPException(status_code=403, detail="Acesso restrito a admins e masters")
+    return user

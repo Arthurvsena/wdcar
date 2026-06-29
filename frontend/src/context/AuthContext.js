@@ -10,17 +10,21 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    const saved = localStorage.getItem('user');
-    if (token && saved) {
-      try {
-        setUser(JSON.parse(saved));
-      } catch (e) {
-        console.warn('Failed to parse stored user:', e);
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+    api.get('/auth/me')
+      .then(({ data }) => {
+        localStorage.setItem('user', JSON.stringify(data));
+        setUser(data);
+      })
+      .catch(() => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-      }
-    }
-    setLoading(false);
+        setUser(null);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const login = async (username, password) => {
@@ -53,8 +57,8 @@ export function AuthProvider({ children }) {
     if (!user) return false;
     if (isAdmin(user)) return true;
     if (isDev(user)) return false;
-    if (!user.permissoes) return true;
-    return user.permissoes.split(',').includes(permission);
+    if (!user.permissoes) return false;
+    return user.permissoes.split(',').map(p => p.trim()).filter(Boolean).includes(permission);
   };
 
   return (

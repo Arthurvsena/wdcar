@@ -14,6 +14,14 @@ import Analytics from './pages/Analytics';
 import ClientView from './pages/ClientView';
 import Settings from './pages/Settings';
 import Perfil from './pages/Perfil';
+import HealthReport from './pages/HealthReport';
+import MecanicoPaineis from './pages/MecanicoPaineis';
+import CashRegister from './pages/CashRegister';
+import Fornecedores from './pages/Fornecedores';
+import Compras from './pages/Compras';
+import Garantia from './pages/Garantia';
+import HistoricoVeiculo from './pages/HistoricoVeiculo';
+import Relatorios from './pages/Relatorios';
 
 export default function App() {
   return (
@@ -32,8 +40,16 @@ export default function App() {
                 <Route path="/servicos" element={<Services />} />
                 <Route path="/os" element={<ServiceOrders />} />
                 <Route path="/os/:id" element={<ServiceOrderDetail />} />
+                <Route path="/mecanico" element={<MecanicoPaineis />} />
                 <Route path="/financeiro" element={<Finance />} />
+                <Route path="/caixa" element={<CashRegister />} />
+                <Route path="/fornecedores" element={<Fornecedores />} />
+                <Route path="/compras" element={<Compras />} />
+                <Route path="/garantia" element={<Garantia />} />
+                <Route path="/historico-veiculo" element={<HistoricoVeiculo />} />
                 <Route path="/analytics" element={<Analytics />} />
+                <Route path="/relatorios" element={<Relatorios />} />
+                <Route path="/saude" element={<HealthReport />} />
                 <Route path="/perfil" element={<Perfil />} />
                 <Route
                   path="/configuracoes"

@@ -9,6 +9,7 @@ class RoleEnum(str, Enum):
     ADMIN = "admin"
     USER = "user"
     DEV = "dev"
+    MECANICO = "mecanico"
 
 
 class UserCreate(BaseModel):
@@ -115,6 +116,7 @@ class PartBase(BaseModel):
     preco_compra: float = 0.0
     preco_venda: float = 0.0
     quantidade: int = 0
+    estoque_minimo: int = 0
 
 
 class PartCreate(PartBase):
@@ -211,6 +213,84 @@ class TransactionOut(BaseModel):
     created_at: datetime
     class Config:
         from_attributes = True
+
+
+class SupplierBase(BaseModel):
+    nome: str
+    cnpj_cpf: Optional[str] = None
+    ie_rg: Optional[str] = None
+    telefone: Optional[str] = None
+    email: Optional[str] = None
+    endereco: Optional[str] = None
+    bairro: Optional[str] = None
+    cidade: Optional[str] = None
+    estado: Optional[str] = None
+    cep: Optional[str] = None
+    contato_nome: Optional[str] = None
+    observacoes: Optional[str] = None
+
+
+class SupplierCreate(SupplierBase):
+    pass
+
+
+class SupplierUpdate(SupplierBase):
+    nome: Optional[str] = None
+
+
+class SupplierOut(SupplierBase):
+    id: int
+    oficina_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PurchaseItemCreate(BaseModel):
+    part_id: int
+    quantidade: int = 1
+    preco_unitario: float = 0.0
+
+
+class PurchaseOrderCreate(BaseModel):
+    supplier_id: int
+    observacoes: Optional[str] = None
+    items: list[PurchaseItemCreate] = []
+
+
+class PurchaseItemOut(BaseModel):
+    id: int
+    purchase_order_id: int
+    part_id: int
+    quantidade: int
+    preco_unitario: float
+    part: Optional[dict] = None
+
+    class Config:
+        from_attributes = True
+
+
+class PurchaseOrderOut(BaseModel):
+    id: int
+    oficina_id: int
+    supplier_id: int
+    data_pedido: datetime
+    status: str
+    valor_total: float
+    observacoes: Optional[str] = None
+    supplier: Optional[SupplierOut] = None
+
+    class Config:
+        from_attributes = True
+
+
+class PurchaseOrderDetail(PurchaseOrderOut):
+    items: list[PurchaseItemOut] = []
+
+
+class PurchaseStatusUpdate(BaseModel):
+    status: str  # "recebido" or "cancelado"
 
 
 class DashboardMetrics(BaseModel):

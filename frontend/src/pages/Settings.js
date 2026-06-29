@@ -127,7 +127,7 @@ export default function Settings() {
   };
 
   const hasPerm = (perm) => {
-    return userForm.permissoes ? userForm.permissoes.split(',').includes(perm) : true;
+    return userForm.permissoes ? userForm.permissoes.split(',').filter(Boolean).includes(perm) : false;
   };
 
   return (
@@ -175,7 +175,7 @@ export default function Settings() {
             <div>
               <label className="text-xs text-gray-500 dark:text-gray-400 mb-2 block">Acesso às abas</label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {['dashboard', 'clientes', 'pecas', 'servicos', 'os', 'financeiro', 'analytics'].map((perm) => (
+                {['dashboard', 'clientes', 'pecas', 'servicos', 'os', 'mecanico', 'financeiro', 'caixa', 'fornecedores', 'compras', 'garantia', 'historico', 'analytics', 'health', 'relatorios', 'configuracoes'].map((perm) => (
                   <label key={perm} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all ${
                     hasPerm(perm) ? 'bg-laranja-600/20 border-laranja-600/30 text-laranja-600 dark:text-laranja-400' : 'bg-gray-100 dark:bg-grafite-800 border-gray-300 dark:border-grafite-700 text-gray-500 dark:text-gray-400'
                   }`}>

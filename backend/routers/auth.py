@@ -1,15 +1,22 @@
 import json, os, shutil
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
 from sqlalchemy.orm import Session
 from database import get_db
 from models import User
-from schemas import UserCreate, UserUpdate, UserPasswordChange, UserCreateByAdmin, Token, UserOut
+from schemas import UserCreate, UserUpdate, UserPasswordChange, UserCreateByAdmin, Token, UserOut, RoleEnum
 from auth import hash_password, verify_password, create_access_token, get_current_user
 from permissions import require_master_or_admin
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 AVATAR_DIR = "uploads/avatars"
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+ALLOWED_MIMETYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+MAX_AVATAR_SIZE = 5 * 1024 * 1024
 os.makedirs(AVATAR_DIR, exist_ok=True)
 
 
@@ -30,6 +37,7 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
         nome_oficina=payload.nome_oficina,
         is_master=is_master,
         role=role,
+        permissoes="dashboard,clientes,pecas,servicos,os,mecanico,financeiro,caixa,fornecedores,compras,garantia,historico,analytics,health,relatorios,configuracoes" if is_first_user else "dashboard,clientes,pecas,servicos,os,mecanico",
     )
     db.add(user)
     db.commit()
@@ -45,7 +53,8 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-def login(payload: UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def login(request: Request, payload: UserCreate, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == payload.username).first()
     if not user or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -82,11 +91,18 @@ def update_me(payload: UserUpdate, user: User = Depends(get_current_user), db: S
 
 @router.post("/me/avatar", response_model=UserOut)
 def upload_avatar(file: UploadFile = File(...), user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    ext = os.path.splitext(file.filename)[1] if file.filename else ".png"
+    ext = os.path.splitext(file.filename)[1].lower() if file.filename else ""
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"Extension '{ext}' not allowed. Use: {', '.join(sorted(ALLOWED_EXTENSIONS))}")
+    if file.content_type not in ALLOWED_MIMETYPES:
+        raise HTTPException(status_code=400, detail=f"File type '{file.content_type}' not allowed")
+    contents = file.file.read(MAX_AVATAR_SIZE + 1)
+    if len(contents) > MAX_AVATAR_SIZE:
+        raise HTTPException(status_code=400, detail=f"File too large. Max {MAX_AVATAR_SIZE // (1024*1024)}MB")
     filename = f"user_{user.id}{ext}"
     filepath = os.path.join(AVATAR_DIR, filename)
     with open(filepath, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+        f.write(contents)
     avatar_url = f"/uploads/avatars/{filename}"
     if user.avatar:
         old_path = os.path.join(AVATAR_DIR, os.path.basename(user.avatar))
@@ -125,12 +141,27 @@ def create_user(payload: UserCreateByAdmin, user: User = Depends(require_master_
     existing = db.query(User).filter(User.username == payload.username).first()
     if existing:
         raise HTTPException(status_code=400, detail="Username already exists")
+    
+    # Set default permissions based on role
+    permissoes = payload.permissoes
+    if permissoes is None:
+        if payload.role == RoleEnum.MASTER:
+            permissoes = "dashboard,clientes,pecas,servicos,os,mecanico,financeiro,caixa,fornecedores,compras,garantia,historico,analytics,health,relatorios,configuracoes"
+        elif payload.role == RoleEnum.ADMIN:
+            permissoes = "dashboard,clientes,pecas,servicos,os,mecanico,financeiro,caixa,fornecedores,compras,garantia,historico,analytics,health,relatorios"
+        elif payload.role == RoleEnum.MECANICO:
+            permissoes = "mecanico,os,clientes,pecas"
+        elif payload.role == RoleEnum.USER:
+            permissoes = "dashboard,clientes,pecas,servicos,os,mecanico"
+        else:  # DEV or other
+            permissoes = ""
+    
     novo = User(
         username=payload.username,
         hashed_password=hash_password(payload.password),
         oficina_id=user.oficina_id,
         email=payload.email,
-        permissoes=payload.permissoes,
+        permissoes=permissoes,
         role=payload.role.value if payload.role else "user",
         is_dev=payload.is_dev if payload.is_dev is not None else False,
     )
@@ -158,6 +189,19 @@ def update_user(user_id: int, payload: UserCreateByAdmin, current_user: User = D
         target.email = payload.email
     if payload.permissoes is not None:
         target.permissoes = payload.permissoes
+    else:
+            # Auto-set permissions based on role if permissoes not explicitly provided
+            if payload.role is not None:
+                if payload.role == RoleEnum.MASTER:
+                    target.permissoes = "dashboard,clientes,pecas,servicos,os,mecanico,financeiro,caixa,fornecedores,compras,garantia,historico,analytics,health,relatorios,configuracoes"
+                elif payload.role == RoleEnum.ADMIN:
+                    target.permissoes = "dashboard,clientes,pecas,servicos,os,mecanico,financeiro,caixa,fornecedores,compras,garantia,historico,analytics,health,relatorios"
+                elif payload.role == RoleEnum.MECANICO:
+                    target.permissoes = "mecanico,os,clientes,pecas"
+                elif payload.role == RoleEnum.USER:
+                    target.permissoes = "dashboard,clientes,pecas,servicos,os,mecanico"
+                else:  # DEV or other
+                    target.permissoes = ""
     if payload.role is not None:
         target.role = payload.role.value
     if payload.is_dev is not None and current_user.is_master:
@@ -165,6 +209,28 @@ def update_user(user_id: int, payload: UserCreateByAdmin, current_user: User = D
     db.commit()
     db.refresh(target)
     return UserOut.model_validate(target)
+
+
+@router.post("/migrate-permissions")
+def migrate_permissions(user: User = Depends(require_master_or_admin), db: Session = Depends(get_db)):
+    users = db.query(User).filter(User.oficina_id == user.oficina_id).all()
+    updated = 0
+    for u in users:
+        old = u.permissoes
+        if u.is_master or u.role == RoleEnum.MASTER:
+            u.permissoes = "dashboard,clientes,pecas,servicos,os,mecanico,financeiro,caixa,fornecedores,compras,garantia,historico,analytics,health,relatorios,configuracoes"
+        elif u.role == RoleEnum.ADMIN:
+            u.permissoes = "dashboard,clientes,pecas,servicos,os,mecanico,financeiro,caixa,fornecedores,compras,garantia,historico,analytics,health,relatorios"
+        elif u.role == RoleEnum.MECANICO:
+            u.permissoes = "mecanico,os,clientes,pecas"
+        elif u.role == RoleEnum.USER:
+            u.permissoes = "dashboard,clientes,pecas,servicos,os,mecanico"
+        else:
+            continue
+        if u.permissoes != old:
+            updated += 1
+    db.commit()
+    return {"ok": True, "message": f"Permissions updated for {updated} users"}
 
 
 @router.delete("/users/{user_id}")
