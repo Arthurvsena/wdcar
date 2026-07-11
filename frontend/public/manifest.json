@@ -1,6 +1,6 @@
 {
-  "short_name": "WDOcar",
-  "name": "WDOcar - Gestão de Oficina",
+  "short_name": "GiroCerto",
+  "name": "GiroCerto - Gestão de Oficinas",
   "icons": [
     { "src": "favicon.ico", "sizes": "64x64", "type": "image/x-icon" },
     { "src": "logo192.png", "sizes": "192x192", "type": "image/png" },

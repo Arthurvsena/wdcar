@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../api';
 import { Plus, Trash2, Car, ChevronDown, ChevronUp, Phone, Mail, Fingerprint, Search, AlertCircle, Pencil, X } from 'lucide-react';
 import { formatCPFCNPJ, isValidCPFCNPJ, isValidEmail, unmask, formatPlate, formatPhone } from '../utils/validators';
@@ -6,6 +7,17 @@ import { searchBrands, getModels } from '../utils/carData';
 import Pagination from '../components/Pagination';
 
 const CURRENT_YEAR = new Date().getFullYear();
+
+const getErrorMessage = (err, fallback) => {
+  const detail = err.response?.data?.detail;
+  if (!detail) return fallback;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail.map(e => e.msg).filter(Boolean).join(', ') || fallback;
+  }
+  if (typeof detail === 'object' && detail.msg) return detail.msg;
+  return fallback;
+};
 
 const ESTADOS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
 
@@ -15,9 +27,10 @@ const formatCEP = (v) => {
 };
 
 export default function Clients() {
+  const [searchParams] = useSearchParams();
   const [clients, setClients] = useState([]);
   const [filtered, setFiltered] = useState([]);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchParams.get('q') || '');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -67,7 +80,7 @@ export default function Clients() {
       setClients(data ? (Array.isArray(data) ? data : (data.items || [])) : []);
       setTotal(data ? (Array.isArray(data) ? data.length : (data.total || 0)) : 0);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao carregar clientes');
+      setError(getErrorMessage(err, 'Erro ao carregar clientes'));
     } finally {
       setLoading(false);
     }
@@ -159,7 +172,7 @@ export default function Clients() {
       setErrors({});
       load();
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Erro ao salvar cliente';
+      const msg = getErrorMessage(err, 'Erro ao salvar cliente');
       setErrors({ geral: msg });
     }
   };
@@ -194,7 +207,7 @@ export default function Clients() {
       await api.delete(`/clients/${id}`);
       load();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao remover cliente');
+      setError(getErrorMessage(err, 'Erro ao remover cliente'));
     }
   };
 
@@ -232,7 +245,7 @@ export default function Clients() {
       setVehError('');
       load();
     } catch (err) {
-      setVehError(err.response?.data?.detail || 'Erro ao salvar veículo');
+      setVehError(getErrorMessage(err, 'Erro ao salvar veículo'));
     }
   };
 
@@ -256,7 +269,7 @@ export default function Clients() {
       await api.delete(`/clients/${clienteId}/vehicles/${vehicleId}`);
       load();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao remover veículo');
+      setError(getErrorMessage(err, 'Erro ao remover veículo'));
     }
   };
 
@@ -327,18 +340,22 @@ export default function Clients() {
             </div>
             <form onSubmit={save} className="space-y-3">
               <div>
+                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Nome do cliente</label>
                 <input placeholder="Nome do cliente" value={form.nome} onChange={(e) => { setForm({ ...form, nome: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '') }); if (errors.nome) setErrors({ ...errors, nome: undefined }); }} onBlur={() => { if (!form.nome.trim()) setErrors({ ...errors, nome: 'Nome é obrigatório' }); else setErrors({ ...errors, nome: undefined }); }} className={`w-full bg-gray-100 dark:bg-grafite-800 border ${errors.nome ? 'border-red-500' : 'border-gray-300 dark:border-grafite-700'} rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500`} />
                 {errors.nome && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.nome}</p>}
               </div>
               <div>
+                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">CPF/CNPJ</label>
                 <input placeholder="CPF/CNPJ" value={form.cpf_cnpj} onChange={(e) => setForm({ ...form, cpf_cnpj: formatCPFCNPJ(e.target.value) })} onBlur={() => validateField('cpf_cnpj')} className={`w-full bg-gray-100 dark:bg-grafite-800 border ${errors.cpf_cnpj ? 'border-red-500' : 'border-gray-300 dark:border-grafite-700'} rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500`} />
                 {errors.cpf_cnpj && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.cpf_cnpj}</p>}
               </div>
               <div>
+                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Telefone ((00) 9 0000-0000)</label>
                 <input placeholder="Telefone ((00) 9 0000-0000)" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: formatPhone(e.target.value) })} onBlur={() => validateField('telefone')} className={`w-full bg-gray-100 dark:bg-grafite-800 border ${errors.telefone ? 'border-red-500' : 'border-gray-300 dark:border-grafite-700'} rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500`} />
                 {errors.telefone && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.telefone}</p>}
               </div>
               <div>
+                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Email</label>
                 <input placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} onBlur={() => validateField('email')} className={`w-full bg-gray-100 dark:bg-grafite-800 border ${errors.email ? 'border-red-500' : 'border-gray-300 dark:border-grafite-700'} rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500`} />
                 {errors.email && <p className="text-red-400 text-xs mt-1 flex items-center gap-1"><AlertCircle size={12} />{errors.email}</p>}
               </div>
@@ -346,18 +363,22 @@ export default function Clients() {
                 <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Endereço</p>
                 <div className="space-y-3">
                   <div>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Endereço</label>
                     <input placeholder="Endereço" value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
+                      <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Bairro</label>
                       <input placeholder="Bairro" value={form.bairro} onChange={(e) => setForm({ ...form, bairro: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
                     </div>
                     <div>
+                      <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Cidade</label>
                       <input placeholder="Cidade" value={form.cidade} onChange={(e) => setForm({ ...form, cidade: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
+                      <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Estado</label>
                       <select value={form.estado} onChange={(e) => setForm({ ...form, estado: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500 appearance-none">
                         <option value="">Estado</option>
                         {ESTADOS.map((uf) => (
@@ -366,6 +387,7 @@ export default function Clients() {
                       </select>
                     </div>
                     <div>
+                      <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">CEP (XXXXX-XXX)</label>
                       <input placeholder="CEP (XXXXX-XXX)" value={form.cep} onChange={(e) => setForm({ ...form, cep: formatCEP(e.target.value) })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
                     </div>
                   </div>
@@ -396,9 +418,12 @@ export default function Clients() {
             const expanded = expandedId === cli.id;
             return (
               <div key={cli.id} className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl overflow-hidden">
-                <button
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setExpandedId(expanded ? null : cli.id)}
-                  className="w-full flex items-center justify-between p-4 text-left active:bg-gray-100 dark:active:bg-grafite-800/50 transition-colors"
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setExpandedId(expanded ? null : cli.id); }}
+                  className="w-full flex items-center justify-between p-4 text-left active:bg-gray-100 dark:active:bg-grafite-800/50 transition-colors cursor-pointer"
                 >
                   <div className="flex-1 min-w-0">
                     <h3 className="text-gray-900 dark:text-white font-semibold text-sm md:text-base truncate">{cli.nome}</h3>
@@ -426,7 +451,7 @@ export default function Clients() {
                     </button>
                     {expanded ? <ChevronUp size={18} className="text-gray-500 dark:text-gray-400" /> : <ChevronDown size={18} className="text-gray-500 dark:text-gray-400" />}
                   </div>
-                </button>
+                </div>
 
                 {expanded && (
                   <div className="px-4 pb-4 border-t border-gray-200 dark:border-grafite-800 pt-3">
@@ -450,6 +475,7 @@ export default function Clients() {
                       <div className="space-y-2 mb-3 bg-gray-50 dark:bg-grafite-800/50 rounded-lg p-3">
                         <div className="grid grid-cols-2 gap-2">
                           <div className="col-span-2 relative" ref={brandRef}>
+                            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Marca</label>
                             <div className="relative">
                               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none" />
                               <input
@@ -469,6 +495,7 @@ export default function Clients() {
                             )}
                           </div>
                           <div className="col-span-2 relative" ref={modelRef}>
+                            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Modelo</label>
                             <input
                               placeholder="Modelo"
                               value={modelQuery}
@@ -486,9 +513,18 @@ export default function Clients() {
                               </div>
                             )}
                           </div>
-                          <input placeholder="Placa (XXX-0000)" value={vehForm.placa} onChange={(e) => setVehForm({ ...vehForm, placa: formatPlate(e.target.value) })} onBlur={() => { if (vehForm.placa && checkPlateDuplicate(vehForm.placa)) setVehError('Placa já cadastrada'); else setVehError(''); }} className="bg-white dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500 uppercase" />
-                          <input placeholder={`Ano (1900-${CURRENT_YEAR})`} value={vehForm.ano} onChange={(e) => setVehForm({ ...vehForm, ano: e.target.value.replace(/\D/g, '').slice(0, 4) })} onBlur={() => { const a = parseInt(vehForm.ano); if (vehForm.ano.length === 4 && (a < 1900 || a > CURRENT_YEAR)) setVehError(`Ano inválido (1900-${CURRENT_YEAR})`); else setVehError(''); }} className="bg-white dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
-                          <input placeholder="Cor" value={vehForm.cor} onChange={(e) => setVehForm({ ...vehForm, cor: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '') })} onBlur={() => { if (vehForm.cor) setVehForm({ ...vehForm, cor: vehForm.cor.charAt(0).toUpperCase() + vehForm.cor.slice(1) }); }} className="bg-white dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
+                          <div>
+                            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Placa (XXX-0000)</label>
+                            <input placeholder="Placa (XXX-0000)" value={vehForm.placa} onChange={(e) => setVehForm({ ...vehForm, placa: formatPlate(e.target.value) })} onBlur={() => { if (vehForm.placa && checkPlateDuplicate(vehForm.placa)) setVehError('Placa já cadastrada'); else setVehError(''); }} className="w-full bg-white dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500 uppercase" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Ano (1900-{CURRENT_YEAR})</label>
+                            <input placeholder={`Ano (1900-${CURRENT_YEAR})`} value={vehForm.ano} onChange={(e) => setVehForm({ ...vehForm, ano: e.target.value.replace(/\D/g, '').slice(0, 4) })} onBlur={() => { const a = parseInt(vehForm.ano); if (vehForm.ano.length === 4 && (a < 1900 || a > CURRENT_YEAR)) setVehError(`Ano inválido (1900-${CURRENT_YEAR})`); else setVehError(''); }} className="w-full bg-white dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Cor</label>
+                            <input placeholder="Cor" value={vehForm.cor} onChange={(e) => setVehForm({ ...vehForm, cor: e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '') })} onBlur={() => { if (vehForm.cor) setVehForm({ ...vehForm, cor: vehForm.cor.charAt(0).toUpperCase() + vehForm.cor.slice(1) }); }} className="w-full bg-white dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
+                          </div>
                         </div>
                         {vehError && <p className="text-red-400 text-xs flex items-center gap-1"><AlertCircle size={12} />{vehError}</p>}
                         <button onClick={() => addVehicle(cli.id)} disabled={!vehForm.marca || !vehForm.modelo || !vehForm.placa || !vehForm.ano || !vehForm.cor} className="w-full bg-laranja-600 text-white py-2.5 rounded-lg text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed">{editingVehId ? 'Salvar Veículo' : 'Adicionar Veículo'}</button>

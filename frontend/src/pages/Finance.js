@@ -3,6 +3,17 @@ import api from '../api';
 import { TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Plus, X, CheckCircle, XCircle, Download } from 'lucide-react';
 import Pagination from '../components/Pagination';
 
+const getErrorMessage = (err, fallback) => {
+  const detail = err.response?.data?.detail;
+  if (!detail) return fallback;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail.map(e => e.msg).filter(Boolean).join(', ') || fallback;
+  }
+  if (typeof detail === 'object' && detail.msg) return detail.msg;
+  return fallback;
+};
+
 export default function Finance() {
   const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -17,28 +28,29 @@ export default function Finance() {
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
 
-  useEffect(() => { load(); }, [page, dataInicio, dataFim]);
-
-  const load = async () => {
+  const loadTransactions = async () => {
     setLoading(true);
-    setError('');
     try {
       const params = { skip: (page - 1) * 50, limit: 50 };
       if (dataInicio) params.data_inicio = dataInicio;
       if (dataFim) params.data_fim = dataFim;
-      const [txRes, sumRes] = await Promise.all([
-        api.get('/finance/transactions', { params }),
-        api.get('/finance/summary'),
-      ]);
-      setTransactions(txRes.data ? (Array.isArray(txRes.data) ? txRes.data : (txRes.data.items || [])) : []);
-      setTotal(txRes.data ? (Array.isArray(txRes.data) ? txRes.data.length : (txRes.data.total || 0)) : 0);
-      setSummary(sumRes.data);
+      const { data } = await api.get('/finance/transactions', { params });
+      setTransactions(data?.items || []);
+      setTotal(data?.total || 0);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao carregar dados financeiros');
+      setError(getErrorMessage(err, 'Erro ao carregar'));
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadTransactions();
+  }, [page, dataInicio, dataFim]);
+
+  useEffect(() => {
+    api.get('/finance/summary').then(({ data }) => setSummary(data)).catch(() => {});
+  }, []);
 
   const filtered = tab === 'todas' ? transactions : transactions.filter(t => t.tipo === tab);
 
@@ -52,6 +64,7 @@ export default function Finance() {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (err) {
+      setError('Erro ao exportar CSV');
     }
   };
 
@@ -76,9 +89,9 @@ export default function Finance() {
       await api.post('/finance/transactions', payload);
       setShowForm(false);
       setForm({ tipo: 'entrada', descricao: '', valor: '' });
-      load();
+      loadTransactions();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao salvar transação');
+      setError(getErrorMessage(err, 'Erro ao salvar transação'));
     } finally {
       setSaving(false);
     }
@@ -119,8 +132,14 @@ export default function Finance() {
               <ArrowDownRight size={16} className="inline mr-1" /> Saída
             </button>
           </div>
-          <input placeholder="Descrição" value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" required />
-          <input placeholder="Valor (R$)" type="number" step="0.01" min="0.01" value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" required />
+          <div>
+            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Descrição</label>
+            <input placeholder="Descrição" value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" required />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Valor (R$)</label>
+            <input placeholder="Valor (R$)" type="number" step="0.01" min="0.01" value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" required />
+          </div>
           <button type="submit" disabled={saving} className="w-full bg-laranja-600 hover:bg-laranja-700 disabled:opacity-50 text-white py-3 rounded-lg text-sm font-medium">
             {saving ? 'Salvando...' : 'Salvar'}
           </button>

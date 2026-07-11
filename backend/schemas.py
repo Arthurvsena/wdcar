@@ -9,6 +9,7 @@ class RoleEnum(str, Enum):
     ADMIN = "admin"
     USER = "user"
     DEV = "dev"
+    MECANICO = "mecanico"
 
 
 class UserCreate(BaseModel):
@@ -115,6 +116,7 @@ class PartBase(BaseModel):
     preco_compra: float = 0.0
     preco_venda: float = 0.0
     quantidade: int = 0
+    estoque_minimo: int = 0
 
 
 class PartCreate(PartBase):
@@ -208,6 +210,131 @@ class TransactionOut(BaseModel):
     descricao: Optional[str] = None
     valor: float
     referencia_id: Optional[int] = None
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+
+class SupplierBase(BaseModel):
+    nome: str
+    cnpj_cpf: Optional[str] = None
+    telefone: Optional[str] = None
+    email: Optional[str] = None
+    endereco: Optional[str] = None
+
+
+class SupplierCreate(SupplierBase):
+    pass
+
+
+class SupplierOut(SupplierBase):
+    id: int
+    oficina_id: int
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+
+class PurchaseCreate(BaseModel):
+    supplier_id: int
+    part_id: Optional[int] = None
+    descricao: Optional[str] = None
+    quantidade: int = 1
+    valor_unitario: float = 0.0
+
+    @model_validator(mode="after")
+    def validate_quantidade(self):
+        if self.quantidade <= 0:
+            raise ValueError("quantidade must be positive")
+        if self.valor_unitario < 0:
+            raise ValueError("valor_unitario must not be negative")
+        return self
+
+
+class PurchaseOut(BaseModel):
+    id: int
+    oficina_id: int
+    supplier_id: int
+    part_id: Optional[int] = None
+    descricao: Optional[str] = None
+    quantidade: int
+    valor_unitario: float
+    valor_total: float
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+
+class CashOpenRequest(BaseModel):
+    valor_abertura: float = 0.0
+
+
+class CashCloseRequest(BaseModel):
+    valor_fechamento: Optional[float] = None
+
+
+class CashMovementCreate(BaseModel):
+    tipo: str
+    descricao: Optional[str] = None
+    valor: float
+
+    @model_validator(mode="after")
+    def validate_valor(self):
+        if self.tipo not in ("entrada", "saida"):
+            raise ValueError("tipo must be 'entrada' or 'saida'")
+        if self.valor <= 0:
+            raise ValueError("valor must be positive")
+        return self
+
+
+class CashMovementOut(BaseModel):
+    id: int
+    cash_session_id: int
+    tipo: str
+    descricao: Optional[str] = None
+    valor: float
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+
+class CashSessionOut(BaseModel):
+    id: int
+    oficina_id: int
+    opened_by_id: int
+    valor_abertura: float
+    valor_fechamento: Optional[float] = None
+    status: str
+    opened_at: datetime
+    closed_at: Optional[datetime] = None
+    movements: list[CashMovementOut] = []
+    class Config:
+        from_attributes = True
+
+
+class WarrantyCreate(BaseModel):
+    service_order_id: int
+    vehicle_id: int
+    descricao: Optional[str] = None
+    prazo_dias: int = 90
+
+    @model_validator(mode="after")
+    def validate_prazo(self):
+        if self.prazo_dias <= 0:
+            raise ValueError("prazo_dias must be positive")
+        return self
+
+
+class WarrantyOut(BaseModel):
+    id: int
+    oficina_id: int
+    service_order_id: int
+    vehicle_id: int
+    descricao: Optional[str] = None
+    prazo_dias: int
+    data_inicio: datetime
+    data_expiracao: datetime
+    status: str
     created_at: datetime
     class Config:
         from_attributes = True

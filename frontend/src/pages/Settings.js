@@ -1,35 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
-import api from '../api';
+import api, { getMediaUrl } from '../api';
 import { useAuth } from '../context/AuthContext';
-import { User, Shield, Plus, Trash2, Pencil, Check, X } from 'lucide-react';
-import { isAdmin, ROLES } from '../utils/permissions';
-
-const getErrorMessage = (err) => {
-  const detail = err.response?.data?.detail;
-  if (!detail) return 'Erro ao salvar usuário';
-  if (typeof detail === 'string') return detail;
-  if (Array.isArray(detail) && detail.length > 0) {
-    return detail.map(e => e.msg).filter(Boolean).join(', ');
-  }
-  if (typeof detail === 'object' && detail.msg) return detail.msg;
-  return 'Erro ao salvar usuário';
-};
+import { User, Shield, Plus, Trash2, Pencil, Check, X, Building2, Upload, ScrollText } from 'lucide-react';
+import { isAdmin, ROLES, ALL_PERMISSIONS, defaultPermsCsv } from '../utils/permissions';
+import { getErrorMessage } from '../utils/errors';
 
 const ROLE_COLORS = {
   master: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
   admin: 'bg-laranja-500/20 text-laranja-400 border-laranja-500/30',
-  user: 'bg-grafite-700 text-gray-400 border-grafite-600',
+  user: 'bg-gray-200 dark:bg-grafite-700 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-grafite-600',
+  mecanico: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
 };
 
 const ROLE_LABELS = {
   master: 'MASTER',
   admin: 'ADMIN',
   user: 'USER',
+  mecanico: 'MECÂNICO',
 };
 
 export default function Settings() {
-  const { user: authUser } = useAuth();
+  const { user: authUser, oficina, refreshOficina } = useAuth();
+  const logoInputRef = useRef(null);
+  const [nomeOficina, setNomeOficina] = useState('');
+  const [savingOficina, setSavingOficina] = useState(false);
 
   if (!isAdmin(authUser)) {
     return <Navigate to="/perfil" replace />;
@@ -44,8 +39,19 @@ export default function Settings() {
   const [msgType, setMsgType] = useState('info');
   const [saving, setSaving] = useState(false);
 
+  const [auditItems, setAuditItems] = useState([]);
+  const [auditTotal, setAuditTotal] = useState(0);
+
+  const loadAudit = (skip = 0) => {
+    api.get(`/oficina/audit?skip=${skip}&limit=20`).then(({ data }) => {
+      setAuditItems((prev) => (skip === 0 ? data.items : [...prev, ...data.items]));
+      setAuditTotal(data.total || 0);
+    }).catch(() => {});
+  };
+
   useEffect(() => {
     loadUsers();
+    loadAudit();
   }, []);
 
   const loadUsers = () => {
@@ -84,7 +90,7 @@ export default function Settings() {
       }
       setShowUserForm(false);
       setEditingUserId(null);
-      setUserForm({ username: '', password: '', email: '', permissoes: '', role: 'user' });
+      setUserForm({ username: '', password: '', email: '', permissoes: defaultPermsCsv('user'), role: 'user' });
       loadUsers();
       showMsg(editingUserId ? 'Usuário atualizado!' : 'Usuário criado!', 'success');
     } catch (err) {
@@ -127,7 +133,56 @@ export default function Settings() {
   };
 
   const hasPerm = (perm) => {
-    return userForm.permissoes ? userForm.permissoes.split(',').includes(perm) : true;
+    return userForm.permissoes ? userForm.permissoes.split(',').filter(Boolean).includes(perm) : false;
+  };
+
+  useEffect(() => {
+    setNomeOficina(oficina?.nome || '');
+  }, [oficina]);
+
+  const saveOficina = async (e) => {
+    e.preventDefault();
+    if (!nomeOficina.trim()) return;
+    setSavingOficina(true);
+    try {
+      await api.put('/oficina', { nome: nomeOficina.trim() });
+      await refreshOficina();
+      showMsg('Dados da oficina salvos!', 'success');
+    } catch (err) {
+      showMsg(getErrorMessage(err, 'Erro ao salvar oficina'), 'error');
+    } finally {
+      setSavingOficina(false);
+    }
+  };
+
+  const uploadLogo = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'image/png') {
+      showMsg('A logo deve ser um arquivo PNG', 'error');
+      return;
+    }
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      await api.post('/oficina/logo', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await refreshOficina();
+      showMsg('Logo atualizada!', 'success');
+    } catch (err) {
+      showMsg(getErrorMessage(err, 'Erro ao enviar logo'), 'error');
+    } finally {
+      if (logoInputRef.current) logoInputRef.current.value = '';
+    }
+  };
+
+  const removeLogo = async () => {
+    try {
+      await api.delete('/oficina/logo');
+      await refreshOficina();
+      showMsg('Logo removida', 'success');
+    } catch (err) {
+      showMsg(getErrorMessage(err, 'Erro ao remover logo'), 'error');
+    }
   };
 
   return (
@@ -145,10 +200,63 @@ export default function Settings() {
         </div>
       )}
 
+      {/* ===== DADOS DA OFICINA ===== */}
+      <form onSubmit={saveOficina} className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-4 md:p-5 space-y-4">
+        <h3 className="flex items-center gap-2 text-gray-900 dark:text-white font-semibold text-sm">
+          <Building2 size={16} className="text-laranja-600 dark:text-laranja-400" />
+          Dados da Oficina
+        </h3>
+        <div className="flex flex-col md:flex-row md:items-end gap-4">
+          <div className="flex-1">
+            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Nome da oficina</label>
+            <input
+              value={nomeOficina}
+              onChange={(e) => setNomeOficina(e.target.value)}
+              className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500"
+              placeholder="Nome da oficina"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={savingOficina}
+            className="bg-laranja-600 hover:bg-laranja-700 disabled:opacity-50 text-white px-5 py-3 rounded-lg text-sm font-medium transition-all"
+          >
+            {savingOficina ? 'Salvando...' : 'Salvar'}
+          </button>
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 dark:text-gray-400 mb-2 block">Logo (PNG) - aparece na barra de navegação</label>
+          <div className="flex items-center gap-4">
+            {oficina?.logo ? (
+              <>
+                <img src={getMediaUrl(oficina.logo)} alt="Logo da oficina" className="h-12 max-w-[160px] object-contain bg-gray-100 dark:bg-grafite-800 rounded-lg p-1.5" />
+                <button type="button" onClick={removeLogo} className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300">
+                  <Trash2 size={14} /> Remover
+                </button>
+                <button type="button" onClick={() => logoInputRef.current?.click()} className="flex items-center gap-1 text-xs text-laranja-600 dark:text-laranja-400 hover:underline">
+                  <Upload size={14} /> Trocar
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => logoInputRef.current?.click()}
+                className="flex items-center gap-2 bg-gray-100 dark:bg-grafite-800 border border-dashed border-gray-300 dark:border-grafite-600 rounded-lg px-4 py-3 text-sm text-gray-500 dark:text-gray-400 hover:border-laranja-500 hover:text-laranja-500 transition-colors"
+              >
+                <Upload size={16} />
+                Enviar logo em PNG
+              </button>
+            )}
+            <input ref={logoInputRef} type="file" accept="image/png" onChange={uploadLogo} className="hidden" />
+          </div>
+        </div>
+      </form>
+
       <div className="space-y-3">
         <div className="flex justify-end">
           <button
-            onClick={() => { setShowUserForm(true); setEditingUserId(null); setUserForm({ username: '', password: '', email: '', permissoes: '', role: 'user' }); }}
+            onClick={() => { setShowUserForm(true); setEditingUserId(null); setUserForm({ username: '', password: '', email: '', permissoes: defaultPermsCsv('user'), role: 'user' }); }}
             className="flex items-center gap-2 bg-laranja-600 hover:bg-laranja-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
           >
             <Plus size={18} /> Novo Usuário
@@ -159,23 +267,42 @@ export default function Settings() {
           <form onSubmit={saveUser} className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-4 md:p-5 space-y-3">
             <h3 className="text-gray-900 dark:text-white font-semibold text-sm">{editingUserId ? 'Editar Usuário' : 'Novo Usuário'}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <input placeholder="Nome de usuário" value={userForm.username} onChange={(e) => setUserForm({ ...userForm, username: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" required />
-              <input placeholder={editingUserId ? 'Nova senha (deixar vazio para manter)' : 'Senha'} type="password" value={userForm.password} onChange={(e) => setUserForm({ ...userForm, password: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" required={!editingUserId} />
-              <input placeholder="Email" type="email" value={userForm.email} onChange={(e) => setUserForm({ ...userForm, email: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
-              <select
-                value={userForm.role}
-                onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
-                className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500"
-              >
-                <option value="user">USER</option>
-                <option value="admin">ADMIN</option>
-                {authUser?.is_master && <option value="master">MASTER</option>}
-              </select>
+              <div>
+                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Nome de usuário</label>
+                <input placeholder="Nome de usuário" value={userForm.username} onChange={(e) => setUserForm({ ...userForm, username: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" required />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Senha</label>
+                <input placeholder={editingUserId ? 'Nova senha (deixar vazio para manter)' : 'Senha'} type="password" value={userForm.password} onChange={(e) => setUserForm({ ...userForm, password: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" required={!editingUserId} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Email</label>
+                <input placeholder="Email" type="email" value={userForm.email} onChange={(e) => setUserForm({ ...userForm, email: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Nível de acesso</label>
+                <select
+                  value={userForm.role}
+                  onChange={(e) => {
+                    const role = e.target.value;
+                    // Ao escolher o nível, pré-preenche as abas com o padrão do
+                    // role (ex.: mecânico já vem com OS marcada) para não criar
+                    // usuários sem acesso. O admin ainda pode ajustar manualmente.
+                    setUserForm({ ...userForm, role, permissoes: defaultPermsCsv(role) });
+                  }}
+                  className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500"
+                >
+                  <option value="user">USER</option>
+                  <option value="mecanico">MECÂNICO</option>
+                  <option value="admin">ADMIN</option>
+                  {authUser?.is_master && <option value="master">MASTER</option>}
+                </select>
+              </div>
             </div>
             <div>
               <label className="text-xs text-gray-500 dark:text-gray-400 mb-2 block">Acesso às abas</label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {['dashboard', 'clientes', 'pecas', 'servicos', 'os', 'financeiro', 'analytics'].map((perm) => (
+                {ALL_PERMISSIONS.map((perm) => (
                   <label key={perm} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all ${
                     hasPerm(perm) ? 'bg-laranja-600/20 border-laranja-600/30 text-laranja-600 dark:text-laranja-400' : 'bg-gray-100 dark:bg-grafite-800 border-gray-300 dark:border-grafite-700 text-gray-500 dark:text-gray-400'
                   }`}>
@@ -214,7 +341,7 @@ export default function Settings() {
               <div key={u.id} className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-grafite-700 flex items-center justify-center flex-shrink-0">
                   {u.avatar ? (
-                    <img src={u.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                    <img src={getMediaUrl(u.avatar)} alt="" className="w-full h-full rounded-full object-cover" />
                   ) : (
                     <User size={18} className="text-gray-500 dark:text-gray-400" />
                   )}
@@ -256,6 +383,36 @@ export default function Settings() {
             ))
           )}
         </div>
+      </div>
+
+      {/* ===== AUDITORIA DA OFICINA ===== */}
+      <div className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-4 md:p-5">
+        <h3 className="flex items-center gap-2 text-gray-900 dark:text-white font-semibold text-sm mb-3">
+          <ScrollText size={16} className="text-laranja-600 dark:text-laranja-400" />
+          Atividade recente
+          <span className="text-xs font-normal text-gray-400">({auditTotal})</span>
+        </h3>
+        {auditItems.length === 0 ? (
+          <p className="text-sm text-gray-500 dark:text-gray-400">Nenhuma atividade registrada ainda</p>
+        ) : (
+          <div className="space-y-1">
+            {auditItems.map((a) => (
+              <div key={a.id} className="flex items-center gap-3 text-xs py-1.5 border-b border-gray-100 dark:border-grafite-800/60 last:border-0">
+                <span className="text-gray-400 dark:text-gray-500 whitespace-nowrap w-32 shrink-0">
+                  {a.created_at ? new Date(a.created_at).toLocaleString('pt-BR') : '-'}
+                </span>
+                <span className="text-gray-700 dark:text-gray-300 font-medium shrink-0">{a.username || '-'}</span>
+                <span className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-grafite-800 text-gray-600 dark:text-gray-400 whitespace-nowrap shrink-0">{a.acao}</span>
+                <span className="text-gray-500 dark:text-gray-400 truncate">{a.detalhe || (a.entidade ? `${a.entidade} #${a.entidade_id}` : '')}</span>
+              </div>
+            ))}
+            {auditItems.length < auditTotal && (
+              <button onClick={() => loadAudit(auditItems.length)} className="mt-2 text-xs text-laranja-600 dark:text-laranja-400 hover:underline">
+                Carregar mais
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

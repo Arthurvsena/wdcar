@@ -4,8 +4,9 @@ from database import get_db
 from models import User, Service
 from schemas import ServiceCreate, ServiceOut
 from auth import get_current_user
+from permissions import require_permission
 
-router = APIRouter(prefix="/services", tags=["services"])
+router = APIRouter(prefix="/services", tags=["services"], dependencies=[Depends(require_permission("servicos"))])
 
 
 @router.get("")

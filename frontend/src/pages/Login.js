@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Wrench } from 'lucide-react';
+import { getErrorMessage } from '../utils/errors';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -19,7 +20,7 @@ export default function Login() {
       await login(username, password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao autenticar');
+      setError(getErrorMessage(err, 'Erro ao autenticar'));
     } finally {
       setLoading(false);
     }
@@ -32,8 +33,8 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-laranja-600 rounded-2xl mb-4 shadow-lg shadow-laranja-600/30">
             <Wrench size={32} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">WDOcar</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Gestão de Oficina Mecânica</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">GiroCerto</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Gestão de Oficinas</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-2xl p-6 md:p-8 space-y-4">
@@ -76,7 +77,17 @@ export default function Login() {
           >
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
+
+          <div className="text-center">
+            <Link to="/esqueci-senha" className="text-sm text-gray-500 dark:text-gray-400 hover:text-laranja-500 transition-colors">
+              Esqueci minha senha
+            </Link>
+          </div>
         </form>
+
+        <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-6">
+          © 2026 Criado e desenvolvido por Nexus Tech
+        </p>
       </div>
     </div>
   );

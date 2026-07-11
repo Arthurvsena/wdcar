@@ -10,11 +10,17 @@ services:
       - "8000:8000"
     volumes:
       - ./uploads:/app/uploads
-      - ./backend/wdocar.db:/app/wdocar.db
+      - ./wdocar.db:/app/wdocar.db
+      - ./data:/app/data
     environment:
       - DATABASE_URL=sqlite:///./wdocar.db
       - SECRET_KEY=${SECRET_KEY:-wdocar-secret-key-change-in-production}
       - ALLOWED_ORIGINS=http://localhost:3000
+      - VAPID_PRIVATE_KEY_FILE=/app/data/vapid_private.pem
+      - VAPID_CLAIM_EMAIL=${VAPID_CLAIM_EMAIL:-mailto:admin@girocerto.com}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - EMAIL_FROM=${EMAIL_FROM:-GiroCerto <onboarding@resend.dev>}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]

@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from database import get_db
 from models import User, Cliente, Vehicle
 from schemas import ClienteCreate, ClienteOut, ClienteWithVehicles, VehicleCreate, VehicleOut
 from auth import get_current_user
 from validators import is_valid_cpf_cnpj, is_valid_email
+from permissions import require_permission
+from audit import audit
 
-router = APIRouter(prefix="/clients", tags=["clients"])
+router = APIRouter(prefix="/clients", tags=["clients"], dependencies=[Depends(require_permission("clientes"))])
 
 
 def _get_oficina(user: User) -> int:
@@ -49,7 +51,7 @@ def list_clients(skip: int = 0, limit: int = 50, user: User = Depends(get_curren
     ofid = _get_oficina(user)
     query = db.query(Cliente).filter(Cliente.oficina_id == ofid)
     total = query.count()
-    items = query.offset(skip).limit(limit).all()
+    items = query.options(selectinload(Cliente.vehicles)).offset(skip).limit(limit).all()
     return {"items": items, "total": total}
 
 
@@ -62,6 +64,8 @@ def create_client(payload: ClienteCreate, user: User = Depends(get_current_user)
     _check_cliente_duplicates(db, user.oficina_id, payload)
     cli = Cliente(oficina_id=user.oficina_id, **payload.model_dump())
     db.add(cli)
+    db.flush()
+    audit(db, user, "cliente_criado", "cliente", cli.id, detalhe=cli.nome)
     db.commit()
     db.refresh(cli)
     return cli
@@ -97,6 +101,7 @@ def delete_client(cliente_id: int, user: User = Depends(get_current_user), db: S
     cli = db.query(Cliente).filter(Cliente.id == cliente_id, Cliente.oficina_id == user.oficina_id).first()
     if not cli:
         raise HTTPException(status_code=404, detail="Cliente not found")
+    audit(db, user, "cliente_excluido", "cliente", cli.id, detalhe=cli.nome)
     db.delete(cli)
     db.commit()
     return {"ok": True}

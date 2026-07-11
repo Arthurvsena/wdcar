@@ -1,0 +1,14 @@
+node_modules
+frontend/node_modules
+frontend/build
+*.db
+*.sqlite
+*.sqlite3
+uploads/
+data/
+vapid_private.pem
+backend/vapid_private.pem
+__pycache__/
+*.pyc
+.git
+.env

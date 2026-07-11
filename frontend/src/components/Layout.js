@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getMediaUrl } from '../api';
 import ThemeToggle from './ThemeToggle';
+import NotificationBell from './NotificationBell';
+import CommandPalette from './CommandPalette';
 import {
   LayoutDashboard, Users, Package2, Wrench, FileText,
   BarChart3, DollarSign, LogOut, Wrench as LogoIcon,
-  Menu, X, ChevronRight, Bell, Settings as SettingsIcon,
+  Menu, X, ChevronRight, Settings as SettingsIcon,
+  Activity, HardHat, Wallet, Truck, ShoppingCart, ShieldCheck,
+  History, FileBarChart, TerminalSquare, Search,
 } from 'lucide-react';
 import { isAdmin, isDev, hasPermission, NAV_ITEMS, ADMIN_NAV_ITEMS } from '../utils/permissions';
 
@@ -18,15 +23,27 @@ const iconMap = {
   BarChart3,
   DollarSign,
   Settings: SettingsIcon,
+  Activity,
+  HardHat,
+  Wallet,
+  Truck,
+  ShoppingCart,
+  ShieldCheck,
+  History,
+  FileBarChart,
 };
 
-const bottomNav = [
-  { label: 'Início', icon: LayoutDashboard, path: '/' },
-  { label: 'Clientes', icon: Users, path: '/clientes' },
-  { label: 'OS', icon: FileText, path: '/os' },
-  { label: 'Peças', icon: Package2, path: '/pecas' },
+const BOTTOM_NAV_ITEMS = [
+  { label: 'Início', icon: LayoutDashboard, path: '/', permission: 'dashboard' },
+  { label: 'Clientes', icon: Users, path: '/clientes', permission: 'clientes' },
+  { label: 'OS', icon: FileText, path: '/os', permission: 'os' },
+  { label: 'Caixa', icon: Wallet, path: '/caixa', permission: 'caixa' },
+  { label: 'Peças', icon: Package2, path: '/pecas', permission: 'pecas' },
   { label: 'Mais', icon: Menu, path: '/analytics' },
 ];
+
+const getBottomNav = (user) =>
+  BOTTOM_NAV_ITEMS.filter((item) => !item.permission || hasPermission(user, item.permission));
 
 const getNavItems = (user) => {
   if (!user) return [];
@@ -41,11 +58,51 @@ const getNavItems = (user) => {
   return items;
 };
 
+// Logo da oficina na navbar; sem logo, usa o nome da oficina como marca
+function OficinaBrand({ oficina, compact = false }) {
+  const nome = oficina?.nome || 'GiroCerto';
+  if (oficina?.logo) {
+    return (
+      <img
+        src={getMediaUrl(oficina.logo)}
+        alt={nome}
+        className={`${compact ? 'h-8' : 'h-10'} max-w-[150px] object-contain`}
+      />
+    );
+  }
+  return (
+    <div className="flex items-center gap-2 min-w-0">
+      <div className={`${compact ? 'w-8 h-8' : 'w-10 h-10'} bg-laranja-600 rounded-lg flex items-center justify-center shrink-0`}>
+        <span className={`text-white font-bold ${compact ? 'text-sm' : 'text-base'}`}>
+          {nome.charAt(0).toUpperCase()}
+        </span>
+      </div>
+      <span className={`font-bold text-gray-900 dark:text-white truncate ${compact ? 'text-base' : 'text-lg'}`}>
+        {nome}
+      </span>
+    </div>
+  );
+}
+
 export default function Layout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, oficina, logout } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const devUser = isDev(user);
+
+  React.useEffect(() => {
+    if (devUser) return undefined;
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [devUser]);
 
   const handleLogout = () => {
     setDrawerOpen(false);
@@ -55,27 +112,45 @@ export default function Layout({ children }) {
 
   const isActive = (path) => location.pathname === path;
 
-  const navItems = getNavItems(user);
+  const navItems = React.useMemo(() => getNavItems(user), [user]);
 
+  // ===== PAINEL DEV =====
   if (isDev(user)) {
+    if (location.pathname !== '/dev') {
+      return <Navigate to="/dev" replace />;
+    }
     return (
-      <div className="min-h-screen bg-grafite-950 flex items-center justify-center pb-16 md:pb-0">
-        <div className="bg-grafite-900 border border-grafite-800 rounded-xl p-8 text-center max-w-sm mx-4">
-          <div className="w-16 h-16 bg-laranja-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-3xl">🔒</span>
+      <div className="min-h-screen bg-gray-50 dark:bg-grafite-950 text-gray-900 dark:text-gray-100 transition-colors duration-200">
+        <header className="sticky top-0 z-40 bg-white dark:bg-grafite-900 border-b border-gray-200 dark:border-grafite-800 h-14 px-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-laranja-600 rounded-lg flex items-center justify-center">
+              <LogoIcon size={18} className="text-white" />
+            </div>
+            <span className="font-bold text-gray-900 dark:text-white">GiroCerto</span>
+            <span className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-laranja-600/15 text-laranja-600 dark:text-laranja-400 font-medium">
+              <TerminalSquare size={12} />
+              Painel Dev
+            </span>
           </div>
-          <h1 className="text-xl font-bold text-white mb-2">Modo Dev</h1>
-          <p className="text-gray-400 text-sm mb-6">Acesso restrito para desenvolvedores</p>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 bg-grafite-800 hover:bg-grafite-700 text-gray-300 px-6 py-3 rounded-lg text-sm mx-auto"
-          >
-            <LogOut size={16} />
-            Sair
-          </button>
-        </div>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-red-400 transition-colors"
+            >
+              <LogOut size={18} />
+              <span className="hidden sm:inline">Sair</span>
+            </button>
+          </div>
+        </header>
+        <main className="max-w-5xl mx-auto p-4 md:p-6">{children}</main>
       </div>
     );
+  }
+
+  // ===== PRIMEIRO ACESSO: master ainda não configurou a oficina =====
+  if (user && oficina && !oficina.setup_completo && isAdmin(user)) {
+    return <Navigate to="/setup" replace />;
   }
 
   const avatarPath = isAdmin(user) ? '/configuracoes' : '/perfil';
@@ -87,18 +162,15 @@ export default function Layout({ children }) {
         <button onClick={() => setDrawerOpen(true)} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white p-1">
           <Menu size={24} />
         </button>
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-laranja-600 rounded-lg flex items-center justify-center">
-            <LogoIcon size={18} className="text-white" />
-          </div>
-          <span className="font-bold text-gray-900 dark:text-white">WDOcar</span>
+        <Link to="/" className="flex items-center min-w-0 px-2">
+          <OficinaBrand oficina={oficina} compact />
         </Link>
         <div className="flex items-center gap-3">
+          <button onClick={() => setPaletteOpen(true)} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white p-1" aria-label="Buscar">
+            <Search size={20} />
+          </button>
           <ThemeToggle />
-          <div className="relative">
-            <Bell size={20} className="text-gray-600 dark:text-gray-400" />
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full" />
-          </div>
+          <NotificationBell align="right" />
           <button onClick={() => navigate(avatarPath)} className="w-8 h-8 bg-gray-200 dark:bg-grafite-700 rounded-full flex items-center justify-center text-xs font-bold text-laranja-600 dark:text-laranja-400 hover:bg-gray-300 dark:hover:bg-grafite-600 transition-colors">
             {user?.username?.charAt(0).toUpperCase()}
           </button>
@@ -120,13 +192,10 @@ export default function Layout({ children }) {
         }`}
       >
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-grafite-800">
-          <Link to="/" onClick={() => setDrawerOpen(false)} className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-laranja-600 rounded-lg flex items-center justify-center">
-              <LogoIcon size={22} className="text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-gray-900 dark:text-white">WDOcar</h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{user?.nome_oficina}</p>
+          <Link to="/" onClick={() => setDrawerOpen(false)} className="flex items-center gap-3 min-w-0">
+            <div className="min-w-0">
+              <OficinaBrand oficina={oficina} />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">GiroCerto - Gestão de Oficinas</p>
             </div>
           </Link>
           <button onClick={() => setDrawerOpen(false)} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white p-1">
@@ -177,21 +246,22 @@ export default function Layout({ children }) {
       {/* ===== DESKTOP SIDEBAR ===== */}
       <aside className="hidden md:flex md:flex-col md:w-64 bg-white dark:bg-grafite-900 border-r border-gray-200 dark:border-grafite-800 h-screen sticky top-0">
         <div className="p-5 border-b border-gray-200 dark:border-grafite-800">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-laranja-600 rounded-lg flex items-center justify-center">
-                <LogoIcon size={22} className="text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-gray-900 dark:text-white">WDOcar</h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{user?.nome_oficina}</p>
-              </div>
-            </Link>
-            <div className="relative">
-<Bell size={20} className="text-gray-500 dark:text-gray-400" />
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full" />
-            </div>
+          <Link to="/" className="block min-w-0">
+            <OficinaBrand oficina={oficina} />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">GiroCerto - Gestão de Oficinas</p>
+          </Link>
+          <div className="flex items-center gap-4 mt-3">
+            <ThemeToggle />
+            <NotificationBell align="left" />
           </div>
+          <button
+            onClick={() => setPaletteOpen(true)}
+            className="mt-3 w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-grafite-800 border border-gray-200 dark:border-grafite-700 text-xs text-gray-500 dark:text-gray-400 hover:border-laranja-500 transition-colors"
+          >
+            <Search size={14} />
+            <span className="flex-1 text-left">Buscar...</span>
+            <kbd className="text-[10px] px-1.5 py-0.5 rounded border border-gray-300 dark:border-grafite-600">Ctrl+K</kbd>
+          </button>
         </div>
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
@@ -232,6 +302,9 @@ export default function Layout({ children }) {
         </div>
       </aside>
 
+      {/* ===== BUSCA GLOBAL (Ctrl+K) ===== */}
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+
       {/* ===== MAIN CONTENT ===== */}
       <main className="flex-1 overflow-y-auto md:pt-0 pt-14">
         <div className="max-w-5xl mx-auto p-3 md:p-6">
@@ -241,13 +314,13 @@ export default function Layout({ children }) {
 
       {/* ===== BOTTOM NAV (mobile) ===== */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-grafite-900 border-t border-gray-200 dark:border-grafite-800 flex items-center justify-around px-1 pb-safe" style={{ paddingBottom: 'env(safe-area-inset-bottom, 4px)' }}>
-        {bottomNav.map((item) => {
+        {getBottomNav(user).map((item) => {
           const active = isActive(item.path);
           return (
             <Link
               key={item.path}
               to={item.path}
-              className={`flex flex-col items-center gap-0.5 py-2 px-3 min-w-0 rounded-lg transition-colors ${
+              className={`flex flex-col items-center gap-0.5 py-2 px-2 min-w-0 rounded-lg transition-colors ${
                 active ? 'text-laranja-600 dark:text-laranja-400' : 'text-gray-500 dark:text-gray-500'
               }`}
             >

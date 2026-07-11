@@ -1,7 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import api from '../api';
+import api, { getMediaUrl } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { User, Camera, Save, Key, Check, X } from 'lucide-react';
+
+const getErrorMessage = (err, fallback) => {
+  const detail = err.response?.data?.detail;
+  if (!detail) return fallback;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail.map(e => e.msg).filter(Boolean).join(', ') || fallback;
+  }
+  if (typeof detail === 'object' && detail.msg) return detail.msg;
+  return fallback;
+};
 
 export default function Perfil() {
   const { user: authUser, login } = useAuth();
@@ -37,7 +48,7 @@ export default function Perfil() {
       localStorage.setItem('user', JSON.stringify(updatedUser));
       showMsg('Perfil atualizado!', 'success');
     } catch (err) {
-      showMsg(err.response?.data?.detail || 'Erro ao atualizar perfil', 'error');
+      showMsg(getErrorMessage(err, 'Erro ao atualizar perfil'), 'error');
     } finally {
       setSaving(false);
     }
@@ -52,11 +63,11 @@ export default function Perfil() {
       const { data } = await api.post('/auth/me/avatar', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      const updatedUser = { ...authUser, avatar: data.url || data.avatar };
+      const updatedUser = { ...authUser, avatar: data.avatar };
       localStorage.setItem('user', JSON.stringify(updatedUser));
       window.location.reload();
     } catch (err) {
-      showMsg('Erro ao enviar avatar', 'error');
+      showMsg(getErrorMessage(err, 'Erro ao enviar avatar'), 'error');
     }
   };
 
@@ -79,7 +90,7 @@ export default function Perfil() {
       showMsg('Senha alterada com sucesso!', 'success');
       setPasswordForm({ current_password: '', new_password: '', confirm: '' });
     } catch (err) {
-      showMsg(err.response?.data?.detail || 'Erro ao alterar senha', 'error');
+      showMsg(getErrorMessage(err, 'Erro ao alterar senha'), 'error');
     } finally {
       setSaving(false);
     }
@@ -87,26 +98,26 @@ export default function Perfil() {
 
   return (
     <div className="space-y-4 pb-4">
-      <h1 className="text-xl md:text-2xl font-bold text-white">Meu Perfil</h1>
+      <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Meu Perfil</h1>
 
       {msg && (
         <div className={`px-4 py-3 rounded-xl text-sm flex items-center gap-2 ${
           msgType === 'error' ? 'bg-red-500/10 border border-red-500/30 text-red-400' :
           msgType === 'success' ? 'bg-green-500/10 border border-green-500/30 text-green-400' :
-          'bg-laranja-600/20 border border-laranja-600/30 text-laranja-400'
+          'bg-laranja-600/20 border border-laranja-600/30 text-laranja-600 dark:text-laranja-400'
         }`}>
           {msgType === 'error' ? <X size={16} /> : <Check size={16} />}
           {msg}
         </div>
       )}
 
-      <div className="bg-grafite-900 border border-grafite-800 rounded-xl p-4 md:p-6">
+      <div className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-4 md:p-6">
         <div className="flex flex-col items-center mb-6">
           <div className="relative w-20 h-20 md:w-24 md:h-24 mb-3">
             {authUser?.avatar ? (
-              <img src={authUser.avatar} alt="avatar" className="w-full h-full rounded-full object-cover border-2 border-laranja-600" />
+              <img src={getMediaUrl(authUser.avatar)} alt="avatar" className="w-full h-full rounded-full object-cover border-2 border-laranja-600" />
             ) : (
-              <div className="w-full h-full rounded-full bg-grafite-700 flex items-center justify-center border-2 border-laranja-600">
+              <div className="w-full h-full rounded-full bg-gray-200 dark:bg-grafite-700 flex items-center justify-center border-2 border-laranja-600">
                 <User size={36} className="text-gray-400" />
               </div>
             )}
@@ -121,16 +132,16 @@ export default function Perfil() {
         </div>
         <form onSubmit={saveProfile} className="space-y-3 max-w-md mx-auto">
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">Nome de usuário</label>
-            <input value={profile.username} onChange={(e) => setProfile({ ...profile, username: e.target.value })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" />
+            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Nome de usuário</label>
+            <input value={profile.username} onChange={(e) => setProfile({ ...profile, username: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
           </div>
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">Nome da oficina</label>
-            <input value={profile.nome_oficina} onChange={(e) => setProfile({ ...profile, nome_oficina: e.target.value })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" />
+            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Nome da oficina</label>
+            <input value={profile.nome_oficina} onChange={(e) => setProfile({ ...profile, nome_oficina: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
           </div>
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">Email</label>
-            <input type="email" value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" />
+            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Email</label>
+            <input type="email" value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
           </div>
           <button type="submit" disabled={saving} className="w-full bg-laranja-600 hover:bg-laranja-700 text-white py-3 rounded-lg text-sm font-medium disabled:opacity-40">
             <Save size={16} className="inline mr-2" />Salvar
@@ -138,23 +149,23 @@ export default function Perfil() {
         </form>
       </div>
 
-      <div className="bg-grafite-900 border border-grafite-800 rounded-xl p-4 md:p-6">
-        <h2 className="text-white font-semibold text-sm mb-4 flex items-center gap-2">
-          <Key size={16} className="text-laranja-400" />
+      <div className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-4 md:p-6">
+        <h2 className="text-gray-900 dark:text-white font-semibold text-sm mb-4 flex items-center gap-2">
+          <Key size={16} className="text-laranja-600 dark:text-laranja-400" />
           Alterar Senha
         </h2>
         <form onSubmit={changePassword} className="space-y-3 max-w-md mx-auto">
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">Senha atual</label>
-            <input type="password" value={passwordForm.current_password} onChange={(e) => setPasswordForm({ ...passwordForm, current_password: e.target.value })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" required />
+            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Senha atual</label>
+            <input type="password" value={passwordForm.current_password} onChange={(e) => setPasswordForm({ ...passwordForm, current_password: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" required />
           </div>
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">Nova senha</label>
-            <input type="password" value={passwordForm.new_password} onChange={(e) => setPasswordForm({ ...passwordForm, new_password: e.target.value })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" required />
+            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Nova senha</label>
+            <input type="password" value={passwordForm.new_password} onChange={(e) => setPasswordForm({ ...passwordForm, new_password: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" required />
           </div>
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">Confirmar nova senha</label>
-            <input type="password" value={passwordForm.confirm} onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })} className="w-full bg-grafite-800 border border-grafite-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-laranja-500" required />
+            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Confirmar nova senha</label>
+            <input type="password" value={passwordForm.confirm} onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" required />
           </div>
           <button type="submit" disabled={saving} className="w-full bg-laranja-600 hover:bg-laranja-700 text-white py-3 rounded-lg text-sm font-medium disabled:opacity-40">
             <Key size={16} className="inline mr-2" />Alterar Senha

@@ -3,6 +3,17 @@ import api from '../api';
 import { Plus, Edit3, Trash2, Search } from 'lucide-react';
 import Pagination from '../components/Pagination';
 
+const getErrorMessage = (err, fallback) => {
+  const detail = err.response?.data?.detail;
+  if (!detail) return fallback;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail.map(e => e.msg).filter(Boolean).join(', ') || fallback;
+  }
+  if (typeof detail === 'object' && detail.msg) return detail.msg;
+  return fallback;
+};
+
 export default function Services() {
   const [services, setServices] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -31,7 +42,7 @@ export default function Services() {
       setServices(data ? (Array.isArray(data) ? data : (data.items || [])) : []);
       setTotal(data ? (Array.isArray(data) ? data.length : (data.total || 0)) : 0);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao carregar serviços');
+      setError(getErrorMessage(err, 'Erro ao carregar serviços'));
     } finally {
       setLoading(false);
     }
@@ -62,7 +73,7 @@ export default function Services() {
       setShowForm(false);
       load();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao salvar serviço');
+      setError(getErrorMessage(err, 'Erro ao salvar serviço'));
     }
   };
 
@@ -73,7 +84,7 @@ export default function Services() {
       await api.delete(`/services/${id}`);
       load();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao remover serviço');
+      setError(getErrorMessage(err, 'Erro ao remover serviço'));
     }
   };
 
@@ -110,9 +121,18 @@ export default function Services() {
           {showForm && (
             <form onSubmit={save} className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-4 md:p-5 space-y-3">
               <div className="space-y-3">
-                <input placeholder="Nome do serviço" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" required />
-                <input placeholder="Descrição" value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
-                <input placeholder="Valor mão de obra (R$)" type="number" step="0.01" value={form.valor_mao_obra} onChange={(e) => setForm({ ...form, valor_mao_obra: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
+                <div>
+                  <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Nome do serviço</label>
+                  <input placeholder="Nome do serviço" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" required />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Descrição</label>
+                  <input placeholder="Descrição" value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Valor mão de obra (R$)</label>
+                  <input placeholder="Valor mão de obra (R$)" type="number" step="0.01" value={form.valor_mao_obra} onChange={(e) => setForm({ ...form, valor_mao_obra: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
+                </div>
               </div>
               <div className="flex gap-2 pt-1">
                 <button type="submit" className="flex-1 bg-laranja-600 hover:bg-laranja-700 text-white py-3 rounded-lg text-sm font-medium">{edit ? 'Atualizar' : 'Salvar'}</button>

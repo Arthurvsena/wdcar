@@ -1,7 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
+import { useToast } from '../context/ToastContext';
 import { ArrowLeft, CheckCircle, XCircle, Plus, Trash2, Wrench, Package2, AlertTriangle, Clock, Package, Play, DollarSign, FileText, ChevronDown, MessageCircle } from 'lucide-react';
+
+const getErrorMessage = (err, fallback) => {
+  const detail = err.response?.data?.detail;
+  if (!detail) return fallback;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail.map(e => e.msg).filter(Boolean).join(', ') || fallback;
+  }
+  if (typeof detail === 'object' && detail.msg) return detail.msg;
+  return fallback;
+};
 
 export default function ServiceOrderDetail() {
   const { id } = useParams();
@@ -9,20 +21,21 @@ export default function ServiceOrderDetail() {
   const [order, setOrder] = useState(null);
   const [parts, setParts] = useState([]);
   const [services, setServices] = useState([]);
+  const toast = useToast();
   const [selectedPart, setSelectedPart] = useState('');
   const [selectedService, setSelectedService] = useState('');
   const [partQty, setPartQty] = useState(1);
-  const [msg, setMsg] = useState('');
-  const [msgType, setMsgType] = useState('info');
   const [showAddPart, setShowAddPart] = useState(false);
   const [showAddService, setShowAddService] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [whatsAppMessage, setWhatsAppMessage] = useState('');
   const dropdownRef = useRef(null);
 
   useEffect(() => {
     load();
-    api.get('/parts').then(({ data }) => setParts(data));
-    api.get('/services').then(({ data }) => setServices(data));
+    api.get('/parts?limit=999').then(({ data }) => setParts(data?.items || []));
+    api.get('/services?limit=999').then(({ data }) => setServices(data?.items || []));
   }, [id]);
 
   useEffect(() => {
@@ -40,7 +53,11 @@ export default function ServiceOrderDetail() {
     setOrder(data);
   };
 
-  const showMsg = (text, type = 'info') => { setMsg(text); setMsgType(type); setTimeout(() => { setMsg(''); setMsgType('info'); }, 3000); };
+  const showMsg = (text, type = 'info') => {
+    if (type === 'success') toast.success(text);
+    else if (type === 'error') toast.error(text);
+    else toast.info(text);
+  };
 
   const addPart = async () => {
     if (!selectedPart) return;
@@ -52,7 +69,7 @@ export default function ServiceOrderDetail() {
       setPartQty(1);
       load();
     } catch (err) {
-      showMsg(err.response?.data?.detail || 'Erro ao adicionar peça', 'error');
+      showMsg(getErrorMessage(err, 'Erro ao adicionar peça'), 'error');
     }
   };
 
@@ -65,7 +82,7 @@ export default function ServiceOrderDetail() {
       setSelectedService('');
       load();
     } catch (err) {
-      showMsg(err.response?.data?.detail || 'Erro ao adicionar serviço', 'error');
+      showMsg(getErrorMessage(err, 'Erro ao adicionar serviço'), 'error');
     }
   };
 
@@ -110,6 +127,16 @@ export default function ServiceOrderDetail() {
     const link = `${window.location.origin}/orcamento/${order.orcamento_token}`;
     const message = `Olá! Segue o orçamento da sua OS #${order.id}: ${link}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
+  const notifyCarReady = async () => {
+    try {
+      const { data } = await api.post(`/orders/${id}/notify-ready`);
+      setWhatsAppMessage(data.mensagem_whatsapp || `Olá ${order.cliente?.nome}, seu ${order.vehicle?.marca} ${order.vehicle?.modelo} está pronto! Aguardamos você.`);
+      setShowWhatsAppModal(true);
+    } catch (err) {
+      showMsg(getErrorMessage(err, 'Erro ao gerar mensagem'), 'error');
+    }
   };
 
   if (!order) return <div className="flex items-center justify-center min-h-[60vh] text-gray-500 dark:text-gray-400 text-sm">Carregando...</div>;
@@ -196,17 +223,6 @@ export default function ServiceOrderDetail() {
         </div>
       </div>
 
-      {msg && (
-        <div className={`px-4 py-3 rounded-xl text-sm flex items-center gap-2 ${
-          msgType === 'error' ? 'bg-red-500/10 border border-red-500/30 text-red-400' :
-          msgType === 'success' ? 'bg-green-500/10 border border-green-500/30 text-green-400' :
-          'bg-laranja-600/20 border border-laranja-600/30 text-laranja-400'
-        }`}>
-          {msgType === 'error' ? <XCircle size={16} /> : <CheckCircle size={16} />}
-          {msg}
-        </div>
-      )}
-
       {/* Peças */}
       <div className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-200 dark:border-grafite-800 flex items-center justify-between">
@@ -223,14 +239,20 @@ export default function ServiceOrderDetail() {
 
         {showAddPart && canEdit && (
           <div className="p-4 bg-gray-50 dark:bg-grafite-800/30 border-b border-gray-200 dark:border-grafite-800 space-y-2">
-            <select value={selectedPart} onChange={(e) => setSelectedPart(e.target.value)} className="w-full bg-white dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-3 py-2.5 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500">
-              <option value="">Selecione uma peça</option>
-              {parts.filter((p) => (p.quantidade ?? 0) > 0).map((p) => (
-                <option key={p.id} value={p.id}>{p.nome} (est: {p.quantidade ?? 0}) - R$ {(p.preco_venda ?? 0).toFixed(2)}</option>
-              ))}
-            </select>
-            <div className="flex gap-2">
-              <input type="number" min="1" value={partQty} onChange={(e) => setPartQty(parseInt(e.target.value) || 1)} className="w-20 bg-white dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-3 py-2.5 text-gray-900 dark:text-white text-sm text-center focus:outline-none focus:border-laranja-500" />
+            <div>
+              <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Peça</label>
+              <select value={selectedPart} onChange={(e) => setSelectedPart(e.target.value)} className="w-full bg-white dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-3 py-2.5 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500">
+                <option value="">Selecione uma peça</option>
+                {parts.filter((p) => (p.quantidade ?? 0) > 0).map((p) => (
+                  <option key={p.id} value={p.id}>{p.nome} (est: {p.quantidade ?? 0}) - R$ {(p.preco_venda ?? 0).toFixed(2)}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-2 items-end">
+              <div className="w-20">
+                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Qtd.</label>
+                <input type="number" min="1" value={partQty} onChange={(e) => setPartQty(parseInt(e.target.value) || 1)} className="w-20 bg-white dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-3 py-2.5 text-gray-900 dark:text-white text-sm text-center focus:outline-none focus:border-laranja-500" />
+              </div>
               <button onClick={addPart} className="flex-1 bg-laranja-600 hover:bg-laranja-700 text-white py-2.5 rounded-lg text-sm font-medium">Adicionar</button>
             </div>
           </div>
@@ -272,12 +294,15 @@ export default function ServiceOrderDetail() {
 
 {showAddService && canEdit && (
           <div className="p-4 bg-gray-50 dark:bg-grafite-800/30 border-b border-gray-200 dark:border-grafite-800 space-y-2">
-            <select value={selectedService} onChange={(e) => setSelectedService(e.target.value)} className="w-full bg-white dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-3 py-2.5 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500">
-              <option value="">Selecione um serviço</option>
-              {services.map((s) => (
-                <option key={s.id} value={s.id}>{s.nome} - R$ {s.valor_mao_obra.toFixed(2)}</option>
-              ))}
-            </select>
+            <div>
+              <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Serviço</label>
+              <select value={selectedService} onChange={(e) => setSelectedService(e.target.value)} className="w-full bg-white dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-3 py-2.5 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500">
+                <option value="">Selecione um serviço</option>
+                {services.map((s) => (
+                  <option key={s.id} value={s.id}>{s.nome} - R$ {s.valor_mao_obra.toFixed(2)}</option>
+                ))}
+              </select>
+            </div>
             <button onClick={addService} className="w-full bg-laranja-600 hover:bg-laranja-700 text-white py-2.5 rounded-lg text-sm font-medium">Adicionar</button>
           </div>
         )}
@@ -318,6 +343,11 @@ export default function ServiceOrderDetail() {
         <button onClick={shareWhatsApp} className="w-full mt-3 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3.5 rounded-xl text-sm font-semibold active:scale-[0.98] transition-all shadow-lg shadow-green-600/30">
           <MessageCircle size={20} /> Enviar Orçamento via WhatsApp
         </button>
+        {(order.status === 'finalizada' || order.status === 'aguardando_aprovacao_orcamento') && (
+          <button onClick={notifyCarReady} className="w-full mt-2 flex items-center justify-center gap-2 bg-laranja-600 hover:bg-laranja-700 text-white py-3.5 rounded-xl text-sm font-semibold active:scale-[0.98] transition-all shadow-lg shadow-laranja-600/30">
+            <MessageCircle size={20} /> Enviar "Carro Pronto"
+          </button>
+        )}
       </div>
 
       {/* Ações */}
@@ -365,6 +395,36 @@ export default function ServiceOrderDetail() {
                 })}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showWhatsAppModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white dark:bg-grafite-900 rounded-xl p-5 w-full max-w-sm shadow-xl">
+            <h3 className="text-gray-900 dark:text-white font-semibold text-lg mb-3">Mensagem para WhatsApp</h3>
+            <textarea
+              readOnly
+              value={whatsAppMessage}
+              className="w-full h-32 bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm resize-none"
+            />
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(whatsAppMessage);
+                  showMsg('Mensagem copiada!', 'success');
+                }}
+                className="flex-1 bg-laranja-600 hover:bg-laranja-700 text-white py-3 rounded-lg text-sm font-medium"
+              >
+                Copiar
+              </button>
+              <button
+                onClick={() => setShowWhatsAppModal(false)}
+                className="flex-1 bg-gray-200 dark:bg-grafite-700 hover:bg-gray-300 dark:hover:bg-grafite-600 text-gray-700 dark:text-gray-300 py-3 rounded-lg text-sm"
+              >
+                Fechar
+              </button>
+            </div>
           </div>
         </div>
       )}

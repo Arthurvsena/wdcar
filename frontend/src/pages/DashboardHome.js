@@ -43,18 +43,22 @@ export default function DashboardHome() {
   const [chartsLoading, setChartsLoading] = useState(true);
   const [dataInicio, setDataInicio] = useState(getFirstOfMonth);
   const [dataFim, setDataFim] = useState(getToday);
+  const [lowStockCount, setLowStockCount] = useState(0);
 
   useEffect(() => {
     api.get('/dashboard/metrics').then(({ data }) => setMetrics(data)).catch(() => {});
+    api.get('/parts/low-stock').then(({ data }) => setLowStockCount(data?.count || 0)).catch(() => {});
   }, []);
 
   useEffect(() => {
-    setChartsLoading(true);
-    api
-      .get('/dashboard/charts', { params: { data_inicio: dataInicio, data_fim: dataFim } })
-      .then(({ data }) => setCharts(data))
-      .catch(() => setCharts(null))
-      .finally(() => setChartsLoading(false));
+    const timer = setTimeout(() => {
+      setChartsLoading(true);
+      api.get('/dashboard/charts', { params: { data_inicio: dataInicio, data_fim: dataFim } })
+        .then(({ data }) => setCharts(data))
+        .catch(() => setCharts(null))
+        .finally(() => setChartsLoading(false));
+    }, 500);
+    return () => clearTimeout(timer);
   }, [dataInicio, dataFim]);
 
   if (!metrics) {
@@ -72,6 +76,7 @@ export default function DashboardHome() {
     { label: 'Faturamento do Mês', value: `R$ ${Number(metrics.faturamento_mes || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: DollarSign, color: 'text-green-400', bg: 'bg-green-500/10', to: '/os' },
     { label: 'OS em Espera', value: metrics.os_espera, icon: Package, color: 'text-orange-400', bg: 'bg-orange-500/10', to: '/os' },
     { label: 'Total Peças', value: metrics.total_pecas, icon: Package2, color: 'text-purple-400', bg: 'bg-purple-500/10', to: '/pecas' },
+    { label: '🔴 Estoque Mínimo', value: `${lowStockCount} peça${lowStockCount !== 1 ? 's' : ''}`, icon: Activity, color: 'text-red-400', bg: 'bg-red-500/10', to: '/pecas' },
   ];
 
   const maxFaturamento = charts?.faturamento_diario?.length

@@ -44,3 +44,13 @@ yarn-error.log*
 # Build
 frontend/build/
 frontend/dist/
+# Web Push (chave privada VAPID - nunca commitar)
+vapid_private.pem
+data/
+
+# Conteúdo enviado por usuários (avatars/logos)
+backend/uploads/
+
+# Config local de ferramentas (Claude Code)
+.claude/settings.local.json
+.claude/*.lock

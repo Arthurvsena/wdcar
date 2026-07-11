@@ -5,9 +5,18 @@ import './styles/index.css';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './context/ToastContext';
 
+// Service worker apenas para Web Push (sem cache — ver public/service-worker.js)
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register(`${process.env.PUBLIC_URL || ''}/service-worker.js`)
+      .catch(() => {});
+  });
+  if (window.caches) {
+    caches.keys().then((keys) => keys.forEach((key) => caches.delete(key))).catch(() => {});
+  }
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -16,7 +25,9 @@ root.render(
     <BrowserRouter>
       <AuthProvider>
         <ThemeProvider>
-          <App />
+          <ToastProvider>
+            <App />
+          </ToastProvider>
         </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>

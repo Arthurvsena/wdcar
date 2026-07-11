@@ -1,8 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../api';
-import { Plus, FileText, Search, ChevronRight, Clock, AlertTriangle, Package } from 'lucide-react';
+import { Plus, FileText, Search, ChevronRight, Clock, AlertTriangle, Package, List, Columns } from 'lucide-react';
 import Pagination from '../components/Pagination';
+import OSKanban from '../components/OSKanban';
+import { useToast } from '../context/ToastContext';
+
+const getErrorMessage = (err, fallback) => {
+  const detail = err.response?.data?.detail;
+  if (!detail) return fallback;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail.map(e => e.msg).filter(Boolean).join(', ') || fallback;
+  }
+  if (typeof detail === 'object' && detail.msg) return detail.msg;
+  return fallback;
+};
 
 const TABS = [
   { key: 'abertas', label: 'Abertas', statuses: ['aberta', 'em_andamento', 'aguardando_peca', 'aguardando_pagamento', 'aguardando_aprovacao_orcamento', 'orcamento_recusado'] },
@@ -10,8 +23,21 @@ const TABS = [
   { key: 'canceladas', label: 'Canceladas', statuses: ['cancelada'] },
 ];
 
+const STATUS_LABELS = {
+  aberta: 'Aberta',
+  em_andamento: 'Em andamento',
+  aguardando_peca: 'Aguardando Peça',
+  aguardando_pagamento: 'Aguardando Pagamento',
+  aguardando_aprovacao_orcamento: 'Aguardando Aprovação',
+  orcamento_recusado: 'Orçamento Recusado',
+  finalizada: 'Finalizada',
+  cancelada: 'Cancelada',
+};
+
 export default function ServiceOrders() {
+  const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('os_view_mode') || 'list');
   const [orders, setOrders] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -25,7 +51,12 @@ export default function ServiceOrders() {
   const [error, setError] = useState('');
   const [form, setForm] = useState({ cliente_id: '', vehicle_id: '', observacoes: '' });
 
-  useEffect(() => { load(); }, [page]);
+  useEffect(() => { load(); }, [page, activeTab, viewMode]);
+
+  const setView = (mode) => {
+    setViewMode(mode);
+    localStorage.setItem('os_view_mode', mode);
+  };
 
   useEffect(() => {
     const tab = TABS.find((t) => t.key === activeTab);
@@ -42,17 +73,23 @@ export default function ServiceOrders() {
     setFiltered(result);
   }, [search, activeTab, orders]);
 
+  useEffect(() => {
+    if (showForm) {
+      api.get('/clients?skip=0&limit=999').then(({ data }) => setClients(data.items || []));
+    }
+  }, [showForm]);
+
   const load = async () => {
     setLoading(true);
     setError('');
     try {
-      const { data } = await api.get(`/orders?skip=${(page - 1) * 20}&limit=20`);
+      // kanban precisa de todas as OS ativas; lista continua paginada
+      const query = viewMode === 'kanban' ? 'skip=0&limit=200' : `skip=${(page - 1) * 20}&limit=20`;
+      const { data } = await api.get(`/orders?${query}`);
       setOrders(data ? (Array.isArray(data) ? data : (data.orders || [])) : []);
       setTotal(data ? (Array.isArray(data) ? data.length : (data.total || 0)) : 0);
-      const { data: cli } = await api.get('/clients?skip=0&limit=999');
-      setClients(cli.items || []);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao carregar OS');
+      setError(getErrorMessage(err, 'Erro ao carregar OS'));
     } finally {
       setLoading(false);
     }
@@ -73,11 +110,39 @@ export default function ServiceOrders() {
       setForm({ cliente_id: '', vehicle_id: '', observacoes: '' });
       load();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Erro ao criar OS');
+      setError(getErrorMessage(err, 'Erro ao criar OS'));
     }
   };
 
   const countByStatus = (statuses) => orders.filter((o) => statuses.includes(o.status)).length;
+
+  const changeStatus = async (id, status) => {
+    const alvo = orders.find((o) => o.id === id);
+    if (!alvo || alvo.status === status) return;
+    if (status === 'finalizada' && !window.confirm(`Finalizar OS #${id}? Isso lança a receita no financeiro.`)) return;
+    const anterior = orders;
+    setOrders(orders.map((o) => (o.id === id ? { ...o, status } : o)));
+    try {
+      await api.post(`/orders/${id}/status?status=${status}`);
+      toast.success(`OS #${id} movida para ${STATUS_LABELS[status] || status}`);
+    } catch (err) {
+      setOrders(anterior);
+      toast.error(getErrorMessage(err, 'Erro ao mudar o status da OS'));
+    }
+  };
+
+  // kanban ignora as abas: mostra todas menos canceladas (com filtro de busca)
+  const kanbanOrders = orders.filter((o) => {
+    if (o.status === 'cancelada') return false;
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      o.cliente?.nome?.toLowerCase().includes(q) ||
+      o.vehicle?.modelo?.toLowerCase().includes(q) ||
+      o.vehicle?.placa?.toLowerCase().includes(q) ||
+      `#${o.id}`.includes(q)
+    );
+  });
 
   const getPriorityBadge = (o) => {
     if (o.status === 'finalizada' || o.status === 'cancelada') return null;
@@ -115,9 +180,26 @@ export default function ServiceOrders() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
           <input placeholder="Buscar por cliente, placa..." value={search}           onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="w-full bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl pl-9 pr-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
         </div>
+        <div className="flex bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-1 shrink-0">
+          <button
+            onClick={() => setView('list')}
+            title="Visualização em lista"
+            className={`px-3 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-laranja-600 text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+          >
+            <List size={16} />
+          </button>
+          <button
+            onClick={() => setView('kanban')}
+            title="Visualização kanban"
+            className={`px-3 rounded-lg transition-colors ${viewMode === 'kanban' ? 'bg-laranja-600 text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+          >
+            <Columns size={16} />
+          </button>
+        </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs (somente na lista; o kanban já separa por coluna) */}
+      {viewMode === 'list' && (
       <div className="flex gap-1 bg-white dark:bg-grafite-900 rounded-xl p-1 border border-gray-200 dark:border-grafite-800 overflow-x-auto">
         {TABS.map((tab) => (
           <button
@@ -136,6 +218,7 @@ export default function ServiceOrders() {
           </button>
         ))}
       </div>
+      )}
 
       {error && (
         <div className="px-4 py-3 rounded-xl text-sm bg-red-500/10 border border-red-500/30 text-red-400">{error}</div>
@@ -148,15 +231,24 @@ export default function ServiceOrders() {
           {showForm && (
             <form onSubmit={create} className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-4 md:p-5 space-y-3">
               <div className="space-y-3">
-                <select value={form.cliente_id} onChange={(e) => onClientSelect(e.target.value)} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" required>
-                  <option value="">Selecione o cliente</option>
-                  {clients.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                </select>
-                <select value={form.vehicle_id} onChange={(e) => setForm({ ...form, vehicle_id: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" required disabled={vehicles.length === 0}>
-                  <option value="">Selecione o veículo</option>
-                  {vehicles.map((v) => <option key={v.id} value={v.id}>{v.marca} {v.modelo} {v.placa ? `(${v.placa})` : ''}</option>)}
-                </select>
-                <input placeholder="Observações (opcional)" value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
+                <div>
+                  <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Cliente</label>
+                  <select value={form.cliente_id} onChange={(e) => onClientSelect(e.target.value)} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" required>
+                    <option value="">Selecione o cliente</option>
+                    {clients.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Veículo</label>
+                  <select value={form.vehicle_id} onChange={(e) => setForm({ ...form, vehicle_id: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" required disabled={vehicles.length === 0}>
+                    <option value="">Selecione o veículo</option>
+                    {vehicles.map((v) => <option key={v.id} value={v.id}>{v.marca} {v.modelo} {v.placa ? `(${v.placa})` : ''}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Observações</label>
+                  <input placeholder="Observações (opcional)" value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} className="w-full bg-gray-100 dark:bg-grafite-800 border border-gray-300 dark:border-grafite-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-laranja-500" />
+                </div>
               </div>
               <div className="flex gap-2 pt-1">
                 <button type="submit" className="flex-1 bg-laranja-600 hover:bg-laranja-700 text-white py-3 rounded-lg text-sm font-medium">Criar OS</button>
@@ -164,6 +256,10 @@ export default function ServiceOrders() {
               </div>
             </form>
           )}
+          {viewMode === 'kanban' ? (
+            <OSKanban orders={kanbanOrders} onStatusChange={changeStatus} />
+          ) : (
+          <>
           <div className="space-y-2">
             {filtered.length === 0 && (
               <div className="bg-white dark:bg-grafite-900 border border-gray-200 dark:border-grafite-800 rounded-xl p-8 text-center text-gray-500 dark:text-gray-400 text-sm">
@@ -218,6 +314,8 @@ export default function ServiceOrders() {
             })}
           </div>
           <Pagination page={page} totalPages={Math.ceil(total / 20)} onPageChange={setPage} />
+          </>
+          )}
         </>
       )}
     </div>

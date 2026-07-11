@@ -9,8 +9,8 @@ export const hasPermission = (user, permission) => {
     if (!user) return false;
     if (isAdmin(user)) return true;
     if (isDev(user)) return false;
-    if (!user.permissoes) return true;
-    return user.permissoes.split(',').map(p => p.trim()).includes(permission);
+    if (!user.permissoes) return false;
+    return user.permissoes.split(',').map(p => p.trim()).filter(Boolean).includes(permission);
 };
 
 export const NAV_ITEMS = [
@@ -19,10 +19,37 @@ export const NAV_ITEMS = [
     { key: 'pecas', label: 'Peças', path: '/pecas', icon: 'Package2', permission: 'pecas' },
     { key: 'servicos', label: 'Serviços', path: '/servicos', icon: 'Wrench', permission: 'servicos' },
     { key: 'os', label: 'OS', path: '/os', icon: 'FileText', permission: 'os' },
+    { key: 'mecanico', label: 'Mecânico', path: '/mecanico', icon: 'HardHat', permission: 'mecanico' },
     { key: 'financeiro', label: 'Financeiro', path: '/financeiro', icon: 'DollarSign', permission: 'financeiro' },
+    { key: 'caixa', label: 'Caixa', path: '/caixa', icon: 'Wallet', permission: 'caixa' },
+    { key: 'fornecedores', label: 'Fornecedores', path: '/fornecedores', icon: 'Truck', permission: 'fornecedores' },
+    { key: 'compras', label: 'Compras', path: '/compras', icon: 'ShoppingCart', permission: 'compras' },
+    { key: 'garantia', label: 'Garantia', path: '/garantia', icon: 'ShieldCheck', permission: 'garantia' },
+    { key: 'historico', label: 'Histórico Veículo', path: '/historico', icon: 'History', permission: 'historico' },
     { key: 'analytics', label: 'Analytics', path: '/analytics', icon: 'BarChart3', permission: 'analytics' },
+    { key: 'health', label: 'Saúde da Oficina', path: '/saude', icon: 'Activity', permission: 'health' },
+    { key: 'relatorios', label: 'Relatórios', path: '/relatorios', icon: 'FileBarChart', permission: 'relatorios' },
 ];
 
 export const ADMIN_NAV_ITEMS = [
     { key: 'configuracoes', label: 'Configurações', path: '/configuracoes', icon: 'Settings', roles: [ROLES.MASTER, ROLES.ADMIN] },
 ];
+
+export const ALL_PERMISSIONS = [
+    'dashboard', 'clientes', 'pecas', 'servicos', 'os', 'mecanico',
+    'financeiro', 'caixa', 'fornecedores', 'compras', 'garantia',
+    'historico', 'analytics', 'health', 'relatorios', 'configuracoes',
+];
+
+// Permissões padrão por nível de acesso — deve espelhar PERMISSOES_DEFAULT do
+// backend (permissions.py). Usado para pré-preencher as abas ao escolher o nível
+// no formulário de usuário, evitando cadastros sem acesso (ex.: mecânico sem OS).
+export const PERMISSOES_DEFAULT = {
+    master: ALL_PERMISSIONS,
+    admin: ALL_PERMISSIONS,
+    mecanico: ['dashboard', 'os', 'mecanico', 'historico', 'garantia'],
+    user: ['dashboard', 'clientes', 'pecas', 'servicos', 'os', 'analytics'],
+    dev: [],
+};
+
+export const defaultPermsCsv = (role) => (PERMISSOES_DEFAULT[role] || []).join(',');
