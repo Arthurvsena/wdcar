@@ -47,7 +47,7 @@ export const ALL_PERMISSIONS = [
 export const PERMISSOES_DEFAULT = {
     master: ALL_PERMISSIONS,
     admin: ALL_PERMISSIONS,
-    mecanico: ['dashboard', 'os', 'mecanico', 'historico', 'garantia'],
+    mecanico: ['os', 'mecanico', 'historico', 'garantia'],
     user: ['dashboard', 'clientes', 'pecas', 'servicos', 'os', 'analytics'],
     dev: [],
 };

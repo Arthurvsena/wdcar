@@ -13,7 +13,7 @@ ALL_MODULES = [
 PERMISSOES_DEFAULT = {
     "master": list(ALL_MODULES),
     "admin": list(ALL_MODULES),
-    "mecanico": ["dashboard", "os", "mecanico", "historico", "garantia"],
+    "mecanico": ["os", "mecanico", "historico", "garantia"],
     "user": ["dashboard", "clientes", "pecas", "servicos", "os", "analytics"],
     "dev": [],
 }

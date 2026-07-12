@@ -2,13 +2,14 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
-from database import engine, Base
+from database import engine, Base, ensure_schema
 from models import run_migrations, seed_oficinas
 from routers import auth, clients, parts, services, orders, finance, dashboard
 from routers import cash_register, suppliers, garantia, reports, notifications
 from routers import oficina, dev, search
 from slowapi.errors import RateLimitExceeded
 
+ensure_schema()  # cria o schema dedicado (giro_app) no Postgres antes das tabelas
 run_migrations()
 Base.metadata.create_all(bind=engine)
 seed_oficinas()

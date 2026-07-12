@@ -287,6 +287,11 @@ class Warranty(Base):
 
 
 def run_migrations():
+    # Migrações ad-hoc via ALTER/PRAGMA são específicas do SQLite (dev local).
+    # No Postgres/Neon o schema é criado do zero por create_all, então pula.
+    from database import IS_SQLITE
+    if not IS_SQLITE:
+        return
     with engine.connect() as conn:
         conn.execute(text("PRAGMA foreign_keys=OFF"))
         conn.execute(text("PRAGMA legacy_alter_table=ON"))

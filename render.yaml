@@ -1,0 +1,29 @@
+# Render Blueprint — backend FastAPI do GiroCerto.
+# O frontend vai na Vercel (ver frontend/vercel.json); só o backend fica aqui.
+# workers=1 de propósito: o APScheduler roda em processo e duplicaria jobs com >1 worker.
+services:
+  - type: web
+    name: girocerto-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn main:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --workers 1 --timeout 120
+    healthCheckPath: /health
+    envVars:
+      - key: ENV
+        value: production
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: DB_SCHEMA
+        value: giro_app
+      - key: JWT_SECRET_KEY
+        generateValue: true          # Render gera um segredo forte automaticamente
+      - key: DATABASE_URL
+        sync: false                  # cole a connection string do Neon no painel
+      - key: ALLOWED_ORIGINS
+        sync: false                  # ex.: https://girocerto.vercel.app
+      - key: FRONTEND_URL
+        sync: false                  # ex.: https://girocerto.vercel.app
+      - key: RESEND_API_KEY
+        sync: false                  # opcional (reset de senha por email)

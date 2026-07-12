@@ -153,6 +153,12 @@ export default function Layout({ children }) {
     return <Navigate to="/setup" replace />;
   }
 
+  // Usuário sem acesso ao dashboard (ex.: mecânico) não pode cair na home
+  // financeira em "/": redireciona para a primeira aba disponível.
+  if (user && !hasPermission(user, 'dashboard') && location.pathname === '/') {
+    return <Navigate to={navItems[0]?.path || '/perfil'} replace />;
+  }
+
   const avatarPath = isAdmin(user) ? '/configuracoes' : '/perfil';
 
   return (
