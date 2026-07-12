@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, event, text
+from sqlalchemy import create_engine, event, text, MetaData
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 # carrega .env cedo: database é importado antes dos routers, então precisamos
@@ -39,7 +39,15 @@ else:
         cur.close()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+
+if IS_SQLITE:
+    Base = declarative_base()
+else:
+    # No Postgres, os nomes de tabela são qualificados com o schema
+    # (giro_app.users, ...). Isso é ESSENCIAL no pooler do Neon (PgBouncer em
+    # transaction mode), onde um `SET search_path` por sessão NÃO persiste entre
+    # transações — daí queries sem schema falharem com "relation ... does not exist".
+    Base = declarative_base(metadata=MetaData(schema=DB_SCHEMA))
 
 
 def ensure_schema():

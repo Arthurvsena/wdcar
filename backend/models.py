@@ -321,10 +321,14 @@ def run_migrations():
 def seed_oficinas():
     """Cria registros na tabela oficinas para oficinas pré-existentes (só tinham
     oficina_id nos users). Roda depois de Base.metadata.create_all."""
-    from database import SessionLocal
+    from database import SessionLocal, IS_SQLITE, DB_SCHEMA
 
     db = SessionLocal()
     try:
+        # o SQL abaixo usa nomes de tabela sem schema; no Postgres fixamos o
+        # search_path na MESMA transação (o pooler mantém o backend por transação)
+        if not IS_SQLITE:
+            db.execute(text(f'SET search_path TO "{DB_SCHEMA}"'))
         rows = db.execute(text(
             "SELECT DISTINCT u.oficina_id FROM users u "
             "WHERE u.oficina_id NOT IN (SELECT id FROM oficinas)"
