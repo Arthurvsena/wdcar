@@ -126,7 +126,18 @@ export default function ServiceOrderDetail() {
     if (!order?.orcamento_token) return;
     const link = `${window.location.origin}/orcamento/${order.orcamento_token}`;
     const message = `Olá! Segue o orçamento da sua OS #${order.id}: ${link}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+    // fallback: copia a mensagem (com o link) — assim o usuário sempre consegue
+    // colar, mesmo se o WhatsApp não preencher o texto ao escolher o contato
+    try { navigator.clipboard?.writeText(message); } catch (e) { /* ignora */ }
+    // se o cliente tem telefone, abre a conversa direta já com o texto; senão,
+    // abre o WhatsApp para escolher o contato
+    let phone = (order.cliente?.telefone || '').replace(/\D/g, '');
+    if (phone && phone.length <= 11) phone = `55${phone}`; // adiciona DDI Brasil se faltar
+    const waUrl = phone
+      ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, '_blank');
+    showMsg('Orçamento copiado e WhatsApp aberto para envio', 'success');
   };
 
   const notifyCarReady = async () => {

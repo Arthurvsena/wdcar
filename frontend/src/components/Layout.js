@@ -39,7 +39,7 @@ const BOTTOM_NAV_ITEMS = [
   { label: 'OS', icon: FileText, path: '/os', permission: 'os' },
   { label: 'Caixa', icon: Wallet, path: '/caixa', permission: 'caixa' },
   { label: 'Peças', icon: Package2, path: '/pecas', permission: 'pecas' },
-  { label: 'Mais', icon: Menu, path: '/analytics' },
+  { label: 'Mais', icon: Menu, action: 'menu' },
 ];
 
 const getBottomNav = (user) =>
@@ -193,11 +193,11 @@ export default function Layout({ children }) {
 
       {/* ===== DRAWER (mobile) ===== */}
       <aside
-        className={`md:hidden fixed top-0 left-0 z-50 h-full w-72 bg-white dark:bg-grafite-900 border-r border-gray-200 dark:border-grafite-800 transform transition-transform duration-300 ${
+        className={`md:hidden fixed top-0 left-0 z-50 h-full w-72 flex flex-col bg-white dark:bg-grafite-900 border-r border-gray-200 dark:border-grafite-800 transform transition-transform duration-300 ${
           drawerOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-grafite-800">
+        <div className="shrink-0 flex items-center justify-between p-4 border-b border-gray-200 dark:border-grafite-800">
           <Link to="/" onClick={() => setDrawerOpen(false)} className="flex items-center gap-3 min-w-0">
             <div className="min-w-0">
               <OficinaBrand oficina={oficina} />
@@ -232,7 +232,7 @@ export default function Layout({ children }) {
           })}
         </nav>
 
-        <div className="p-3 border-t border-gray-200 dark:border-grafite-800">
+        <div className="shrink-0 p-3 border-t border-gray-200 dark:border-grafite-800">
           <button onClick={() => { setDrawerOpen(false); navigate(avatarPath); }} className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-grafite-800 rounded-lg transition-all mb-1">
             <div className="w-8 h-8 bg-gray-100 dark:bg-grafite-700 rounded-full flex items-center justify-center text-xs font-bold text-laranja-600 dark:text-laranja-400">
               {user?.username?.charAt(0).toUpperCase()}
@@ -321,6 +321,19 @@ export default function Layout({ children }) {
       {/* ===== BOTTOM NAV (mobile) ===== */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-grafite-900 border-t border-gray-200 dark:border-grafite-800 flex items-center justify-around px-1 pb-safe" style={{ paddingBottom: 'env(safe-area-inset-bottom, 4px)' }}>
         {getBottomNav(user).map((item) => {
+          // item "Mais": abre o menu lateral (todas as abas) em vez de navegar
+          if (item.action === 'menu') {
+            return (
+              <button
+                key="menu"
+                onClick={() => setDrawerOpen(true)}
+                className="flex flex-col items-center gap-0.5 py-2 px-2 min-w-0 rounded-lg transition-colors text-gray-500 dark:text-gray-500"
+              >
+                <item.icon size={20} />
+                <span className="text-[10px] leading-tight">{item.label}</span>
+              </button>
+            );
+          }
           const active = isActive(item.path);
           return (
             <Link
